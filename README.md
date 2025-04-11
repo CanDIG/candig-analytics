@@ -5,4 +5,4 @@ Be careful not to commit any actual data. It is expected that notebooks will be 
 
 See: https://github.com/kynan/nbstripout for how to strip out results from a notebook.
 
-**[find_unlinked_records.py](./find_unlinked_records.py)**: Detects data incomplete between tables.
+**[find_unlinked_records.py](find_unlinked/find_unlinked_records.py)**: Reports data incomplete between tables.

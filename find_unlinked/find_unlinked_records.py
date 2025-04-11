@@ -1,4 +1,4 @@
-# Detects data incomplete between tables.
+# Reports data incomplete between tables.
 #
 # Kinda ugly (though functional) script overall - could be reworked if users express utility or interest.
 # Takes .csv files as input because we are looking for pre-ingestion data absences.
