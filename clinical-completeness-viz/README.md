@@ -37,3 +37,5 @@ Use quarto to convert the notebook into a report, multiple outputs are possible,
 ```bash
 quarto render completeness_stats.ipynb --to docx
 ```
+
+Note: this should work with the current CanDIG network of UHN, BCGSC and MOHQ, will need to be updated as new nodes join the network. There are probably smarter ways of writing the code so that it automatically works when new nodes are added, we should try to write better code in the future.
