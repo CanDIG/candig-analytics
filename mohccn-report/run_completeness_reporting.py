@@ -18,9 +18,7 @@ def main():
     with open("minimal_clinical_query.sql", "r") as f:
         minimal_sql_q = f.read()
     subprocess.run(["docker", "exec", "-i", "candigv2_postgres-db_1", "touch", "minimal_completeness.csv"])
-    result = subprocess.run(["cat", "./minimal_clinical_query.sql", "|", "docker", "exec", "-i",
-                             "candigv2_postgres-db_1", "psql", "-U", "admin", "-d", "clinical", "-c",
-                            f"{minimal_sql_q}", ">", "minimal_completeness.csv"])
+    result = subprocess.run([f"cat ./minimal_clinical_query.sql | docker exec -i candigv2_postgres-db_1 psql -U admin -d clinical -c {minimal_sql_q} > minimal_completeness.csv"])
 
 
 
