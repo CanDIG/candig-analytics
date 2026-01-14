@@ -19,13 +19,16 @@ def main():
         minimal_sql_q = f.read()
     subprocess.run(["docker", "exec", "-i", "candigv2_postgres-db_1", "touch", "minimal_completeness.csv"])
     subprocess.run(["docker", "cp", "minimal_clinical_query.sql", "candigv2_postgres-db_1:/minimal_clinical_query.sql"])
-    result = subprocess.run(["docker exec -i candigv2_postgres-db_1 psql -U admin -d clinical -f /minimal_clinical_query.sql -o minimal_completeness.csv"],
+    result = subprocess.run(["docker exec -i candigv2_postgres-db_1 psql -U admin -d clinical -f /minimal_clinical_query.sql -c minimal_completeness.csv"],
                             shell=True, stdout=subprocess.PIPE)
     subprocess.run(["docker", "cp", "candigv2_postgres-db_1:/minimal_completeness.csv", "minimal_completeness.csv"])
     subprocess.run(["docker", "exec", "-i", "candigv2_postgres-db_1", "rm", "minimal_completeness.csv"])
     subprocess.run(["docker", "exec", "-i", "candigv2_postgres-db_1", "rm", "minimal_clinical_query.sql"])
-    minimal_completeness_df = pd.read_csv("minimal_completeness.csv")
-    print(minimal_completeness_df)
+    # TODO: change back the path below after linked up
+    #minimal_completeness_df = pd.read_csv("../_local/minimal_completeness.csv")
+
+    #print(minimal_completeness_df)
+
 
 
 
