@@ -19,8 +19,11 @@ def main():
         minimal_sql_q = f.read()
     subprocess.run(["docker", "exec", "-i", "candigv2_postgres-db_1", "touch", "minimal_completeness.csv"])
     subprocess.run(["docker", "cp", "minimal_clinical_query.sql", "candigv2_postgres-db_1:/minimal_clinical_query.sql"])
-    result = subprocess.run(["docker exec -i candigv2_postgres-db_1 psql -U admin -d clinical -f /minimal_clinical_query.sql -c minimal_completeness.csv"],
-                            shell=True, stdout=subprocess.PIPE)
+    subprocess.run(['CONN="psql -U admin -d clinical"'])
+    subprocess.run(['QUERY="$(sed \'s/;//g;/^--/ d;s/--.*//g;\' minimal_clinical_query.sql | tr \'\n\' \' \')"'])
+    subprocess.run(['echo "\\copy ($QUERY) to \'minimal_completeness.csv\' with CSV HEADER" | $CONN'])
+    #result = subprocess.run(["docker exec -i candigv2_postgres-db_1 psql -U admin -d clinical -c 'COPY ($(cat /minimal_clinical_query.sql)) TO STDOUT with CSV HEADER' > minimal_completeness.csv"],
+    #                        shell=True, stdout=subprocess.PIPE)
     subprocess.run(["docker", "cp", "candigv2_postgres-db_1:/minimal_completeness.csv", "minimal_completeness.csv"])
     subprocess.run(["docker", "exec", "-i", "candigv2_postgres-db_1", "rm", "minimal_completeness.csv"])
     subprocess.run(["docker", "exec", "-i", "candigv2_postgres-db_1", "rm", "minimal_clinical_query.sql"])
