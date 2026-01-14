@@ -1,4 +1,4 @@
-SELECT mohpackets_donor.program_id_id, mohpackets_donor.submitter_donor_id,
+COPY (SELECT mohpackets_donor.program_id_id, mohpackets_donor.submitter_donor_id,
 mohpackets_sampleregistration.submitter_sample_id, tumour_normal_designation,
 sample_type, COUNT(*) AS non_null_row_count
 FROM
@@ -23,4 +23,4 @@ WHERE mohpackets_donor.program_id_id IS NOT NULL
   AND sample_type IS NOT NULL
   GROUP BY mohpackets_donor.program_id_id, mohpackets_donor.submitter_donor_id,
   mohpackets_sampleregistration.submitter_sample_id, tumour_normal_designation,
-  sample_type to minimal_completeness.csv with CSV HEADER;
+  sample_type) to minimal_completeness.csv with CSV HEADER;
