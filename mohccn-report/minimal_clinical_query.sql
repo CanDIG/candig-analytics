@@ -2,10 +2,10 @@ COPY (SELECT mohpackets_donor.program_id_id, mohpackets_donor.submitter_donor_id
 mohpackets_sampleregistration.submitter_sample_id, tumour_normal_designation,
 sample_type, COUNT(*) AS non_null_row_count
 FROM
-mohpackets_sampleregistration
-FULL JOIN mohpackets_specimen ON mohpackets_sampleregistration.submitter_specimen_id = mohpackets_specimen.submitter_specimen_id
-FULL JOIN mohpackets_primarydiagnosis ON mohpackets_specimen.submitter_primary_diagnosis_id = mohpackets_primarydiagnosis.submitter_primary_diagnosis_id
-FULL JOIN mohpackets_donor ON mohpackets_primarydiagnosis.submitter_donor_id = mohpackets_donor.submitter_donor_id
+mohpackets_donor
+LEFT JOIN mohpackets_primarydiagnosis ON mohpackets_donor.submitter_donor_id = mohpackets_primarydiagnosis.submitter_donor_id
+LEFT JOIN mohpackets_specimen ON mohpackets_primarydiagnosis.submitter_primary_diagnosis_id = mohpackets_specimen.submitter_primary_diagnosis_id
+LEFT JOIN mohpackets_sampleregistration ON mohpackets_specimen.submitter_specimen_id = mohpackets_sampleregistration.submitter_specimen_id
 WHERE mohpackets_donor.program_id_id IS NOT NULL
   AND gender IS NOT NULL
   AND sex_at_birth IS NOT NULL
