@@ -19,7 +19,8 @@ def main():
         minimal_sql_q = f.read()
     subprocess.run(["docker", "exec", "-i", "candigv2_postgres-db_1", "touch", "minimal_completeness.csv"])
     subprocess.run(["docker", "cp", "minimal_clinical_query.sql", "candigv2_postgres-db_1:/minimal_clinical_query.sql"])
-    result = subprocess.run([f"docker exec -i candigv2_postgres-db_1 psql -U admin -d clinical -f /minimal_clinical_query.sql -o minimal_completeness.csv"])
+    result = subprocess.run(["docker exec -i candigv2_postgres-db_1 psql -U admin -d clinical -f /minimal_clinical_query.sql -o minimal_completeness.csv"],
+                            shell=True, stdout=subprocess.PIPE)
 
 
 
