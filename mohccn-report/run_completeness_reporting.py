@@ -133,9 +133,9 @@ def _run_sql_script(script_name):
         [f"docker exec -i candigv2_postgres-db_1 psql -U {PSQL_USER} -d clinical -f /tmp/{script_name}"],
         shell=True, stdout=subprocess.PIPE)
     subprocess.run(
-        ["docker", "cp", "candigv2_postgres-db_1:/tmp/minimal_completeness.csv", f"{stem_name}_completeness.csv"])
+        ["docker", "cp", f"candigv2_postgres-db_1:/tmp/{stem_name}_completeness.csv", f"{stem_name}_completeness.csv"])
     subprocess.run(
-        ["docker", "cp", "candigv2_postgres-db_1:/tmp/minimal_completeness.csv", f"{stem_name}_count.csv"])
+        ["docker", "cp", f"candigv2_postgres-db_1:/tmp/{stem_name}_completeness.csv", f"{stem_name}_count.csv"])
     subprocess.run(["docker", "exec", "-i", "candigv2_postgres-db_1", "rm", f"/tmp/{stem_name}_completeness.csv"])
     subprocess.run(["docker", "exec", "-i", "candigv2_postgres-db_1", "rm", f"/tmp/{stem_name}_count.csv"])
     subprocess.run(["docker", "exec", "-i", "candigv2_postgres-db_1", "rm", f"/tmp/{script_name}"])
