@@ -132,12 +132,14 @@ def _run_sql_script(script_name):
     result = subprocess.run(
         [f"docker exec -i candigv2_postgres-db_1 psql -U {PSQL_USER} -d clinical -f /tmp/{script_name}"],
         shell=True, stdout=subprocess.PIPE)
-    subprocess.run(
-        ["docker", "cp", f"candigv2_postgres-db_1:/tmp/{stem_name}_completeness.csv", f"{stem_name}_completeness.csv"])
-    subprocess.run(
-        ["docker", "cp", f"candigv2_postgres-db_1:/tmp/{stem_name}_completeness.csv", f"{stem_name}_count.csv"])
-    subprocess.run(["docker", "exec", "-i", "candigv2_postgres-db_1", "rm", f"/tmp/{stem_name}_completeness.csv"])
-    subprocess.run(["docker", "exec", "-i", "candigv2_postgres-db_1", "rm", f"/tmp/{stem_name}_count.csv"])
+    if script_name.endswith("count.sql"):
+        subprocess.run(
+            ["docker", "cp", f"candigv2_postgres-db_1:/tmp/{stem_name}_completeness.csv", f"{stem_name}_count.csv"])
+        subprocess.run(["docker", "exec", "-i", "candigv2_postgres-db_1", "rm", f"/tmp/{stem_name}_count.csv"])
+    else:
+        subprocess.run(
+            ["docker", "cp", f"candigv2_postgres-db_1:/tmp/{stem_name}_completeness.csv", f"{stem_name}_completeness.csv"])
+        subprocess.run(["docker", "exec", "-i", "candigv2_postgres-db_1", "rm", f"/tmp/{stem_name}_completeness.csv"])
     subprocess.run(["docker", "exec", "-i", "candigv2_postgres-db_1", "rm", f"/tmp/{script_name}"])
 
 
@@ -145,19 +147,19 @@ def get_clinical_db_data():
     for script in glob.glob('*.sql'):
         _run_sql_script(script)
     # TODO: change back the path below after linked up
-    # minimal_completeness_df = pd.read_csv("../_local/minimal_completeness.csv")
-    # minimal_completeness_df['combined_sample_type'] = (
-    #             minimal_completeness_df['tumour_normal_designation'].astype(str) +
-    #             "~" + minimal_completeness_df['sample_type'].astype(str))
-    # donor_grouped_sample = minimal_completeness_df.groupby(['program_id_id', 'submitter_donor_id'])[
-    #     'combined_sample_type'].agg(list).reset_index()
-    # donor_grouped_sample['samples_complete'] = donor_grouped_sample['combined_sample_type'].map(
-    #     check_sample_completeness)
-    # minimal_complete_donor_list = list(
-    #     donor_grouped_sample.loc[donor_grouped_sample['samples_complete']].submitter_donor_id)
-    # complete_donor_samples_df = minimal_completeness_df.loc[minimal_completeness_df['submitter_donor_id'].isin(minimal_complete_donor_list)]
-    # program_minimal_complete_df = donor_grouped_sample.loc[donor_grouped_sample['samples_complete']].groupby('program_id_id').size().to_frame('minimal_complete_clinical_count').reset_index()
-    # return program_minimal_complete_df, complete_donor_samples_df
+    minimal_completeness_df = pd.read_csv("../_local/minimal_completeness.csv")
+    minimal_completeness_df['combined_sample_type'] = (
+                minimal_completeness_df['tumour_normal_designation'].astype(str) +
+                "~" + minimal_completeness_df['sample_type'].astype(str))
+    donor_grouped_sample = minimal_completeness_df.groupby(['program_id_id', 'submitter_donor_id'])[
+        'combined_sample_type'].agg(list).reset_index()
+    donor_grouped_sample['samples_complete'] = donor_grouped_sample['combined_sample_type'].map(
+        check_sample_completeness)
+    minimal_complete_donor_list = list(
+        donor_grouped_sample.loc[donor_grouped_sample['samples_complete']].submitter_donor_id)
+    complete_donor_samples_df = minimal_completeness_df.loc[minimal_completeness_df['submitter_donor_id'].isin(minimal_complete_donor_list)]
+    program_minimal_complete_df = donor_grouped_sample.loc[donor_grouped_sample['samples_complete']].groupby('program_id_id').size().to_frame('minimal_complete_clinical_count').reset_index()
+    return program_minimal_complete_df, complete_donor_samples_df
 
 
 def main():
