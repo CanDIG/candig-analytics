@@ -22,7 +22,4 @@ WHERE mohpackets_donor.program_id_id IS NOT NULL
   AND specimen_tissue_source IS NOT NULL
   AND tumour_normal_designation IS NOT NULL
   AND specimen_type IS NOT NULL
-  AND sample_type IS NOT NULL
-  GROUP BY mohpackets_donor.program_id_id, mohpackets_donor.submitter_donor_id,
-  mohpackets_sampleregistration.submitter_sample_id, tumour_normal_designation,
-  sample_type) TO '/tmp/fullsome_sample_completeness.csv' with (FORMAT CSV, HEADER);
+  AND sample_type IS NOT NULL) TO '/tmp/fullsome_sample_completeness.csv' with (FORMAT CSV, HEADER);
