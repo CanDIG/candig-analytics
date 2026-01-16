@@ -16,7 +16,7 @@ WHERE mohpackets_donor.program_id_id IS NOT NULL
   AND drug_reference_database IS NOT NULL
   AND drug_reference_identifier IS NOT NULL
   AND drug_name IS NOT NULL) TO '/tmp/fullsome_treatments_sys_therapy_completeness.csv' with (FORMAT CSV, HEADER);
-COPY (SELECT program_id_id, submitter_donor_id, COUNT(*)
+COPY (SELECT program_id_id, submitter_donor_id, submitter_treatment_id, COUNT(*)
 FROM mohpackets_systemictherapy
-GROUP BY program_id_id, submitter_donor_id)
+GROUP BY program_id_id, submitter_donor_id, submitter_treatment_id)
   TO '/tmp/fullsome_treatments_sys_therapy_count.csv' with (FORMAT CSV, HEADER);
