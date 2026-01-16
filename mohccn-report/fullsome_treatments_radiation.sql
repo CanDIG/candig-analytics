@@ -15,7 +15,7 @@ WHERE mohpackets_donor.program_id_id IS NOT NULL
   AND radiation_therapy_fractions IS NOT NULL
   AND radiation_therapy_dosage IS NOT NULL
   AND anatomical_site_irradiated IS NOT NULL) TO '/tmp/fullsome_treatments_radiation_completeness.csv' with (FORMAT CSV, HEADER);
-COPY (SELECT program_id_id, submitter_donor_id, COUNT(*)
+COPY (SELECT program_id_id, submitter_donor_id, submitter_treatment_id, COUNT(*)
 FROM mohpackets_radiation
-GROUP BY program_id_id, submitter_donor_id)
+GROUP BY program_id_id, submitter_donor_id, submitter_treatment_id)
   TO '/tmp/fullsome_treatments_radiation_count.csv' with (FORMAT CSV, HEADER);

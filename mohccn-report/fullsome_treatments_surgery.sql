@@ -11,7 +11,7 @@ WHERE mohpackets_donor.program_id_id IS NOT NULL
   AND treatment_intent IS NOT NULL
   AND surgery_reference_database IS NOT NULL
   AND surgery_type IS NOT NULL) TO '/tmp/fullsome_treatments_surgery_completeness.csv' with (FORMAT CSV, HEADER);
-COPY (SELECT program_id_id, submitter_donor_id, COUNT(*)
+COPY (SELECT program_id_id, submitter_donor_id, submitter_treatment_id, COUNT(*)
 FROM mohpackets_surgery
-GROUP BY program_id_id, submitter_donor_id)
+GROUP BY program_id_id, submitter_donor_id, submitter_treatment_id)
   TO '/tmp/fullsome_treatments_surgery_count.csv' with (FORMAT CSV, HEADER);
