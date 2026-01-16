@@ -1,4 +1,4 @@
-COPY (SELECT mohpackets_donor.program_id_id, mohpackets_donor.submitter_donor_id,
+COPY (SELECT mohpackets_donor.program_id_id, mohpackets_donor.submitter_donor_id, mohpackets_specimen.submitter_specimen_id,
 mohpackets_sampleregistration.submitter_sample_id, mohpackets_specimen.submitter_treatment_id, date_of_death, cause_of_death,
 tumour_histological_type, reference_pathology_confirmed_diagnosis, reference_pathology_confirmed_tumour_presence,
 tumour_grading_system, tumour_grade, percent_tumour_cells_range, percent_tumour_cells_measurement_method,
