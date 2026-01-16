@@ -1,5 +1,5 @@
 COPY (SELECT mohpackets_donor.program_id_id, mohpackets_donor.submitter_donor_id, mohpackets_primarydiagnosis.submitter_primary_diagnosis_id,
-mohpackets_treatment.submitter_treatment_id, treatment_type, drug_dose_units
+mohpackets_treatment.submitter_treatment_id, treatment_type, prescribed_cumulative_drug_dose, actual_cumulative_drug_dose, drug_dose_units
 FROM mohpackets_donor
 LEFT JOIN mohpackets_primarydiagnosis ON mohpackets_donor.submitter_donor_id = mohpackets_primarydiagnosis.submitter_donor_id
 LEFT JOIN mohpackets_treatment ON mohpackets_primarydiagnosis.submitter_primary_diagnosis_id = mohpackets_treatment.submitter_primary_diagnosis_id
