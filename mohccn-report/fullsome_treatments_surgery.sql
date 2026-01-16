@@ -15,3 +15,8 @@ COPY (SELECT program_id_id, submitter_donor_id, COUNT(*)
 FROM mohpackets_surgery
 GROUP BY program_id_id, submitter_donor_id)
   TO '/tmp/fullsome_treatments_surgery_count.csv' with (FORMAT CSV, HEADER);
+COPY (SELECT program_id_id, submitter_donor_id, submitter_specimen_id, submitter_treatment_id
+FROM mohpackets_specimen
+WHERE submitter_treatment_id IS NOT NULL
+GROUP BY program_id_id, submitter_donor_id)
+  TO '/tmp/fullsome_treatments_surgery_specimens.csv' with (FORMAT CSV, HEADER);
