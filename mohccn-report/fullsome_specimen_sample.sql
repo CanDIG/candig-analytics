@@ -11,7 +11,7 @@ WHERE program_id_id IS NOT NULL
   AND tumour_normal_designation IS NOT NULL
   AND specimen_type IS NOT NULL
   AND sample_type IS NOT NULL) TO '/tmp/fullsome_specimen_sample_completeness.csv' with (FORMAT CSV, HEADER);
-COPY (SELECT program_id_id, submitter_donor_id, COUNT(*)
+COPY (SELECT mohpackets_specimen.program_id_id, submitter_donor_id, COUNT(*)
   FROM mohpackets_specimen
   LEFT JOIN mohpackets_sampleregistration ON mohpackets_specimen.submitter_specimen_id = mohpackets_sampleregistration.submitter_specimen_id
   GROUP BY program_id_id, submitter_donor_id, submitter_specimen_id)
