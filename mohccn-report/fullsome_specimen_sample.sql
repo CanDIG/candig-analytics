@@ -1,4 +1,4 @@
-COPY (SELECT program_id_id,submitter_donor_id, submitter_specimen_id,
+COPY (SELECT mohpackets_specimen.program_id_id, submitter_donor_id, submitter_specimen_id,
 submitter_sample_id, tumour_histological_type, reference_pathology_confirmed_diagnosis, reference_pathology_confirmed_tumour_presence,
 tumour_grading_system, tumour_grade, percent_tumour_cells_range, percent_tumour_cells_measurement_method,
 tumour_normal_designation
@@ -12,7 +12,7 @@ WHERE program_id_id IS NOT NULL
   AND specimen_type IS NOT NULL
   AND sample_type IS NOT NULL) TO '/tmp/fullsome_specimen_sample_completeness.csv' with (FORMAT CSV, HEADER);
 COPY (SELECT program_id_id, submitter_donor_id, COUNT(*)
-  FROM mohpackets_primarydiagnosis
+  FROM mohpackets_specimen
   LEFT JOIN mohpackets_sampleregistration ON mohpackets_specimen.submitter_specimen_id = mohpackets_sampleregistration.submitter_specimen_id
   GROUP BY program_id_id, submitter_donor_id, submitter_specimen_id
   TO '/tmp/fullsome_specimen_sample_count.csv' with (FORMAT CSV, HEADER);
