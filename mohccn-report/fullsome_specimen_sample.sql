@@ -4,14 +4,14 @@ tumour_grading_system, tumour_grade, percent_tumour_cells_range, percent_tumour_
 tumour_normal_designation
 FROM mohpackets_specimen
 LEFT JOIN mohpackets_sampleregistration ON mohpackets_specimen.submitter_specimen_id = mohpackets_sampleregistration.submitter_specimen_id
-WHERE program_id_id IS NOT NULL
+WHERE mohpackets_specimen.program_id_id IS NOT NULL
   AND specimen_collection_date IS NOT NULL
   AND specimen_anatomic_location IS NOT NULL
   AND specimen_tissue_source IS NOT NULL
   AND tumour_normal_designation IS NOT NULL
   AND specimen_type IS NOT NULL
   AND sample_type IS NOT NULL) TO '/tmp/fullsome_specimen_sample_completeness.csv' with (FORMAT CSV, HEADER);
-COPY (SELECT mohpackets_specimen.program_id_id, submitter_donor_id, COUNT(*)
+COPY (SELECT mohpackets_specimen.program_id_id, mohpackets_sampleregistration.submitter_donor_id, COUNT(*)
   FROM mohpackets_specimen
   LEFT JOIN mohpackets_sampleregistration ON mohpackets_specimen.submitter_specimen_id = mohpackets_sampleregistration.submitter_specimen_id
   GROUP BY program_id_id, submitter_donor_id, submitter_specimen_id)
