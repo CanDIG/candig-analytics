@@ -14,5 +14,5 @@ WHERE mohpackets_specimen.program_id_id IS NOT NULL
 COPY (SELECT mohpackets_specimen.program_id_id, mohpackets_sampleregistration.submitter_donor_id, COUNT(*)
   FROM mohpackets_specimen
   LEFT JOIN mohpackets_sampleregistration ON mohpackets_specimen.submitter_specimen_id = mohpackets_sampleregistration.submitter_specimen_id
-  GROUP BY program_id_id, submitter_donor_id, submitter_specimen_id)
+  GROUP BY mohpackets_sampleregistration.program_id_id, mohpackets_sampleregistration.submitter_donor_id, mohpackets_sampleregistration.submitter_specimen_id)
   TO '/tmp/fullsome_specimen_sample_count.csv' with (FORMAT CSV, HEADER);
