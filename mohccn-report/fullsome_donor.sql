@@ -1,4 +1,4 @@
-COPY (SELECT program_id_id, submitter_donor_id, is_deceased, date_of_death
+COPY (SELECT program_id_id, submitter_donor_id, is_deceased, date_of_death, cause_of_death
 FROM mohpackets_donor
 WHERE gender IS NOT NULL
   AND sex_at_birth IS NOT NULL
