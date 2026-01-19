@@ -1,4 +1,4 @@
-COPY (SELECT program_id_id, submitter_donor_id, submitter_sample_id
+COPY (SELECT program_id_id, submitter_donor_id, submitter_sample_id, sample_type, tumour_normal_designation
 FROM mohpackets_sampleregistration
 WHERE specimen_tissue_source IS NOT NULL
   AND tumour_normal_designation IS NOT NULL
