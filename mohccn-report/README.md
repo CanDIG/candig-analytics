@@ -1,28 +1,40 @@
 ## MOHCCN report
 
-Jupyter notebook to be run by TFRI staff for reporting on total cases across CanDIG nodes.
+Script that grabs data from the clinical database and CanDIG APIs in order to create a completeness report for all programs at a node
 
-### Current Requirements
+### How to run
 
-Per node, need to summarize the following:
+1. `ssh` into the VM that is running your CanDIG node. The user should be able to access the `postgres-db` docker container
+2. Clone this repo and cd into the mohccn-report directory
+``` bash
+git clone https://github.com/CanDIG/candig-analytics.git
+cd mohccn-report
+```
+3. Create a virtual environment or conda environment and install requirements
 
-1. total cases ingested.  
+```bash
+conda create -n mohccn_report_env python=3.12
+conda activate mohccn_report_env
+pip install -r requirements.txt
+```
 
-2. cases with all genomic files deposited - clarifying which files per sample and patient
+4. Run the `run_completeness_reporting.py` script
+```bash
+python run_completeness_reporting.py --help
+usage: run_completeness_reporting.py [-h] [--psql-user PSQL_USER] --token TOKEN --url URL --node NODE
 
-3. If applicable, # cases that don't yet have all necessary genomic files deposited - This is just 2-1
+options:
+  -h, --help            show this help message and exit
+  --psql-user PSQL_USER
+                        Username of the postgres admin user, DEFAULT=admin
+  --token TOKEN         site admin token for the candig deployment you are retrieving data from.
+  --url URL             URL of the candig deployment you are retrieving data from
+  --node NODE           name of the node running the report, e.g. UHN
+```
 
-4.  cases with the minimum clinical dataset ingested - see fields below and comments
+You will need to provide:
+- `--token`: a site admin token from you candig node
+- `--url`: the url of you candig deployment
+- `--node`: name of your node
 
-5. cases without the minimum clinical dataset - This is 1 - 4
-
-6. If possible, # of cases with fully complete clinical dataset to compare with the # with the minimum dataset - highly doubt we will ever have any fully complete clinical data, but we already calculate this so complete cases - 5
-
-
-### How to run this notebook
-
-1. clone this repo
-2. install requirements
-3. run jupyter notebook
-4. run all chunks
-5. get token and enter it when prompted
+4. Share the output file `per_program_completeness_report.csv`
