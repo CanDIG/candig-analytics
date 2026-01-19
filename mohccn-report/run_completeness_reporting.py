@@ -352,7 +352,8 @@ def get_specimens_completeness():
 
 def get_samples_completeness():
     samp_comp_df = pd.read_csv("fullsome_sample_completeness.csv")
-    samp_count_df = (pd.read_csv("fullsome_sample_count.csv").rename(columns={'count': 'total_count'}))
+    samp_count_df = (pd.read_csv("fullsome_sample_count.csv").rename(columns={'count': 'total_count'}).
+                     groupby(['program_id_id', 'submitter_donor_id']).sum())
     samp_comp_df['complete_samples_count'] = 1
     samp_comp_df = samp_comp_df.drop(['submitter_sample_id'], axis=1).groupby(['program_id_id', 'submitter_donor_id']).sum()
     samples_complete = pd.merge(samp_count_df, samp_comp_df, on=['program_id_id', 'submitter_donor_id'], how="left")
@@ -421,7 +422,8 @@ def main():
     per_donor_clinical_fullsome_complete = joined_completeness.loc[:, ['program_id_id', 'submitter_donor_id', 'donor_fullsome_complete']]
     per_program_fullsome_complete = joined_completeness.loc[:, ['program_id_id', 'donor_fullsome_complete']].groupby('program_id_id', as_index=False).sum()
     auto_full_completeness = get_site_data(args.token, args.url)
-    sample_list = list(complete_donor_samples_df['submitter_sample_id'])
+    samples_count_df = pd.read_csv("fullsome_sample_count.csv")
+    sample_list = list(samples_count_df['submitter_sample_id'])
     genomic_stats = get_genomic_data(args.token, args.url, sample_list)
     genomic_stats.to_csv("genomic_stats.csv")
     genomic_stats = pd.merge(genomic_stats, complete_donor_samples_df, on="submitter_sample_id")
