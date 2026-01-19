@@ -385,6 +385,8 @@ def main():
     program_minimal_complete_df, complete_donor_samples_df = get_minimal_completeness()
     complete_donor_samples_df.to_csv("complete_donor_samples.csv")
     program_minimal_complete_df.to_csv("program_minimal_complete.csv")
+    if len(complete_donor_samples_df) == 0:
+        print("No minimal complete donors found in the instance")
     followup_comp_df = get_followups_completeness()
     comorbidity_comp_df = get_comorbidity_completeness()
     radiations_comp_df = get_radiations_completeness()
@@ -424,10 +426,14 @@ def main():
     auto_full_completeness = get_site_data(args.token, args.url)
     samples_count_df = pd.read_csv("fullsome_sample_count.csv")
     sample_list = list(samples_count_df['submitter_sample_id'])
+    donor_list = set(list(samples_count_df['submitter_donor_id']))
+    samples_comp_df = pd.read_csv("fullsome_sample_completeness.csv")
+    samples_comp_df['combined_sample_type'] = (
+            samples_comp_df['tumour_normal_designation'].astype(str) +
+            "~" + samples_comp_df['sample_type'].astype(str))
     genomic_stats = get_genomic_data(args.token, args.url, sample_list)
     genomic_stats.to_csv("genomic_stats.csv")
-    genomic_stats = pd.merge(genomic_stats, complete_donor_samples_df, on="submitter_sample_id")
-    donor_list = set(list(complete_donor_samples_df['submitter_donor_id']))
+    genomic_stats = pd.merge(genomic_stats, samples_comp_df, on="submitter_sample_id")
     donor_genomic_status = {
         "submitter_donor_id": [],
         "donors_with_genomic_files_complete": []
