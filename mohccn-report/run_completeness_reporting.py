@@ -383,7 +383,7 @@ def main():
         _run_sql_script(script)
     program_minimal_complete_df, complete_donor_samples_df = get_minimal_completeness()
     complete_donor_samples_df.to_csv("complete_donor_samples.csv")
-    program_minimal_complete_df.to_csv("complete_donor_samples.csv")
+    program_minimal_complete_df.to_csv("program_minimal_complete.csv")
     followup_comp_df = get_followups_completeness()
     comorbidity_comp_df = get_comorbidity_completeness()
     radiations_comp_df = get_radiations_completeness()
