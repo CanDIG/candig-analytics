@@ -145,7 +145,6 @@ def _run_sql_script(script_name):
 
 
 def get_minimal_completeness():
-    # TODO: change back the path below after linked up
     minimal_completeness_df = pd.read_csv("minimal_completeness.csv")
     minimal_completeness_df['combined_sample_type'] = (
                 minimal_completeness_df['tumour_normal_designation'].astype(str) +
@@ -415,6 +414,9 @@ def main():
                                                       (~joined_completeness['sys_therapy_donor_complete'].eq(False)) &
                                                       (~joined_completeness['treatment_donor_complete'].eq(False)) &
                                                       (~joined_completeness['specimen_donor_complete'].eq(False)))
+    all_donor_df = donors_comp_df.loc[:, ["program_id_id", "submitter_donor_id"]]
+    minimal_complete_donor_df = complete_donor_samples_df.loc[:, ['program_id_id', 'submitter_donor_id']].drop_duplicates()
+    per_donor_clinical_fullsome_complete = joined_completeness.loc[:, ['program_id_id', 'submitter_donor_id', 'donor_fullsome_complete']]
     per_program_fullsome_complete = joined_completeness.loc[:, ['program_id_id', 'donor_fullsome_complete']].groupby('program_id_id', as_index=False).sum()
     auto_full_completeness = get_site_data(args.token, args.url)
     sample_list = list(complete_donor_samples_df['submitter_sample_id'])
@@ -456,7 +458,8 @@ def main():
     report_table = report_table.rename(columns={'minimal_complete_clinical_count': 'minimal_clinical_complete_count',
                                                 'donor_fullsome_complete': 'fullsome_clinical_complete_count',
                                                 'donors_with_genomic_files_complete': 'files_complete_count'})
-    report_table.to_csv("per_program_completeness_report.csv")
+    report_table.to_csv("per_program_completeness_report.csv", index=False)
+    print("Report saved to 'per_program_completeness_report.csv'")
 
 
 if __name__ == "__main__":
