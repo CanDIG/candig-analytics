@@ -380,7 +380,7 @@ def main():
     args = parse_args()
     # get data for clinical postgresdb
     print("Fetching data from clinical postgres database")
-    for script in glob.glob('*.sql'):
+    for script in glob.glob('queries_results/*.sql'):
         _run_sql_script(script)
     program_minimal_complete_df, complete_donor_samples_df = get_minimal_completeness()
     followup_comp_df = get_followups_completeness()
