@@ -136,17 +136,17 @@ def _run_sql_script(script_name):
         [f"docker exec -i candigv2_postgres-db_1 psql -U {PSQL_USER} -d clinical -f /tmp/{script_name}"],
         shell=True, stdout=subprocess.PIPE)
     subprocess.run(
-        ["docker", "cp", f"candigv2_postgres-db_1:/tmp/{stem_name}_count.csv", f"queries_results/{stem_name}_count.csv"])
+        ["docker", "cp", f"candigv2_postgres-db_1:/tmp/{stem_name}_count.csv", f"{stem_name}_count.csv"])
     subprocess.run(["docker", "exec", "-i", "candigv2_postgres-db_1", "rm", f"/tmp/{stem_name}_count.csv"])
     subprocess.run(
-        ["docker", "cp", f"candigv2_postgres-db_1:/tmp/{stem_name}_completeness.csv", f"queries_results/{stem_name}_completeness.csv"])
+        ["docker", "cp", f"candigv2_postgres-db_1:/tmp/{stem_name}_completeness.csv", f"{stem_name}_completeness.csv"])
     subprocess.run(["docker", "exec", "-i", "candigv2_postgres-db_1", "rm", f"/tmp/{stem_name}_completeness.csv"])
     subprocess.run(["docker", "exec", "-i", "candigv2_postgres-db_1", "rm", f"/tmp/{script_name}"])
 
 
 def get_minimal_completeness():
     # TODO: change back the path below after linked up
-    minimal_completeness_df = pd.read_csv("queries_results/minimal_completeness.csv")
+    minimal_completeness_df = pd.read_csv("minimal_completeness.csv")
     minimal_completeness_df['combined_sample_type'] = (
                 minimal_completeness_df['tumour_normal_designation'].astype(str) +
                 "~" + minimal_completeness_df['sample_type'].astype(str))
@@ -172,8 +172,8 @@ def get_comorbidity_completeness():
     """technically I should check to make sure every time prior_malignancy is listed, the type code is a cancer but I
     don't have time to do that right now.
     For now I will just compare the number of complete comorbidities vs non-complete"""
-    comorbidity_comp_df = pd.read_csv("queries_results/fullsome_comorbidity_completeness.csv")
-    comorbidity_count_df = pd.read_csv("queries_results/fullsome_comorbidity_count.csv").rename(columns={'count': 'total_count'})
+    comorbidity_comp_df = pd.read_csv("fullsome_comorbidity_completeness.csv")
+    comorbidity_count_df = pd.read_csv("fullsome_comorbidity_count.csv").rename(columns={'count': 'total_count'})
     comorbidity_comp_df = comorbidity_comp_df.loc[:,
                           ['program_id_id', 'submitter_donor_id', 'prior_malignancy']].groupby(
         ['program_id_id', 'submitter_donor_id'], as_index=False).count().rename(
@@ -188,8 +188,8 @@ def get_comorbidity_completeness():
 
 
 def get_followups_completeness():
-    followup_comp_df = pd.read_csv("queries_results/fullsome_followup_completeness.csv")
-    followup_count_df = pd.read_csv("queries_results/fullsome_followup_count.csv").rename(columns={'count': 'total_count'})
+    followup_comp_df = pd.read_csv("fullsome_followup_completeness.csv")
+    followup_count_df = pd.read_csv("fullsome_followup_count.csv").rename(columns={'count': 'total_count'})
     followup_comp_df['relapse'] = followup_comp_df['disease_status_at_followup'].isin(['Distant progression',
                                                                                        'Loco-regional progression',
                                                                                        'Progression not otherwise specified',
@@ -212,8 +212,8 @@ def get_followups_completeness():
 
 
 def get_radiations_completeness():
-    radiation_comp_df = pd.read_csv("queries_results/fullsome_treatments_radiation_completeness.csv")
-    radiation_count_df = pd.read_csv("queries_results/fullsome_treatments_radiation_count.csv").drop('submitter_treatment_id',
+    radiation_comp_df = pd.read_csv("fullsome_treatments_radiation_completeness.csv")
+    radiation_count_df = pd.read_csv("fullsome_treatments_radiation_count.csv").drop('submitter_treatment_id',
                                                                                      axis=1).groupby(
         ['program_id_id', 'submitter_donor_id'], as_index=False).sum().rename(columns={'count': 'total_count'})
     complete_radiations = pd.merge(radiation_count_df, radiation_comp_df.loc[:, ['program_id_id', 'submitter_donor_id',
@@ -226,11 +226,11 @@ def get_radiations_completeness():
 
 
 def get_surgeries_completeness():
-    surgery_comp_df = pd.read_csv("queries_results/fullsome_treatments_surgery_completeness.csv")
-    surgery_count_df = pd.read_csv("queries_results/fullsome_treatments_surgery_count.csv").drop('submitter_treatment_id',
+    surgery_comp_df = pd.read_csv("fullsome_treatments_surgery_completeness.csv")
+    surgery_count_df = pd.read_csv("fullsome_treatments_surgery_count.csv").drop('submitter_treatment_id',
                                                                                  axis=1).groupby(
         ['program_id_id', 'submitter_donor_id'], as_index=False).sum().rename(columns={'count': 'total_count'})
-    surgery_specimens = pd.read_csv("queries_results/fullsome_specimen_completeness.csv")
+    surgery_specimens = pd.read_csv("fullsome_specimen_completeness.csv")
     exception_treatments = list(
         surgery_specimens.loc[surgery_specimens['submitter_treatment_id'].notna()].submitter_treatment_id)
     surgery_comp_df['treatment_exception'] = surgery_comp_df['submitter_treatment_id'].isin(exception_treatments)
@@ -246,8 +246,8 @@ def get_surgeries_completeness():
 
 
 def get_sys_therapy_completeness():
-    sys_therapy_comp_df = pd.read_csv("queries_results/fullsome_treatments_sys_therapy_completeness.csv")
-    sys_therapy_count_df = (pd.read_csv("queries_results/fullsome_treatments_sys_therapy_count.csv").drop('submitter_treatment_id', axis=1).
+    sys_therapy_comp_df = pd.read_csv("fullsome_treatments_sys_therapy_completeness.csv")
+    sys_therapy_count_df = (pd.read_csv("fullsome_treatments_sys_therapy_count.csv").drop('submitter_treatment_id', axis=1).
                             groupby(['program_id_id', 'submitter_donor_id'], as_index=False).sum().rename(
                             columns={'count': 'total_count'}))
     sys_therapy_comp_df["sys_therapy_complete"] = ((sys_therapy_comp_df['drug_dose_units'].isna() &
@@ -265,11 +265,11 @@ def get_sys_therapy_completeness():
 
 
 def get_treatments_completeness():
-    treatment_comp_df = pd.read_csv("queries_results/fullsome_treatments_completeness.csv")
-    sys_therapy_count_df = pd.read_csv("queries_results/fullsome_treatments_sys_therapy_count.csv")
-    radiation_count_df = pd.read_csv("queries_results/fullsome_treatments_radiation_count.csv").rename(columns={'count': 'total_count'})
-    surgery_count_df = pd.read_csv("queries_results/fullsome_treatments_surgery_count.csv").rename(columns={'count': 'total_count'})
-    treatment_count_df = pd.read_csv("queries_results/fullsome_treatments_count.csv").rename(
+    treatment_comp_df = pd.read_csv("fullsome_treatments_completeness.csv")
+    sys_therapy_count_df = pd.read_csv("fullsome_treatments_sys_therapy_count.csv")
+    radiation_count_df = pd.read_csv("fullsome_treatments_radiation_count.csv").rename(columns={'count': 'total_count'})
+    surgery_count_df = pd.read_csv("fullsome_treatments_surgery_count.csv").rename(columns={'count': 'total_count'})
+    treatment_count_df = pd.read_csv("fullsome_treatments_count.csv").rename(
         columns={'count': 'total_count'})
     sys_therapy_treatment_list = list(treatment_comp_df.loc[treatment_comp_df['treatment_type'].str.contains('Systemic therapy', na=False), 'submitter_treatment_id'])
     sys_therapy_treatment_type_intersection = set(sys_therapy_treatment_list).intersection(set(sys_therapy_count_df['submitter_treatment_id']))
@@ -302,8 +302,8 @@ def get_treatments_completeness():
 
 
 def get_primary_diagnosis_completeness():
-    pd_comp_df = pd.read_csv("queries_results/fullsome_primary_diagnosis_completeness.csv")
-    pd_count_df = (pd.read_csv("queries_results/fullsome_primary_diagnosis_count.csv").rename(
+    pd_comp_df = pd.read_csv("fullsome_primary_diagnosis_completeness.csv")
+    pd_count_df = (pd.read_csv("fullsome_primary_diagnosis_count.csv").rename(
         columns={'count': 'total_count'}))
     pd_comp_df["staging_present"] = ((pd_comp_df['clinical_tumour_staging_system'].notna() & pd_comp_df['clinical_stage_group'].notna()) |
                                      (pd_comp_df['pathological_tumour_staging_system'].notna() & pd_comp_df['pathological_stage_group'].notna()))
@@ -328,8 +328,8 @@ def get_primary_diagnosis_completeness():
 
 
 def get_specimens_completeness():
-    spec_comp_df = pd.read_csv("queries_results/fullsome_specimen_completeness.csv")
-    spec_count_df = (pd.read_csv("queries_results/fullsome_specimen_count.csv").rename(columns={'count': 'total_count'}))
+    spec_comp_df = pd.read_csv("fullsome_specimen_completeness.csv")
+    spec_count_df = (pd.read_csv("fullsome_specimen_count.csv").rename(columns={'count': 'total_count'}))
     spec_comp_df['tumour_spec_complete'] = (
                 (spec_comp_df['tumour_normal_designation'].str.contains('Tumour') &
                  spec_comp_df['tumour_histological_type'].notna() &
@@ -353,8 +353,8 @@ def get_specimens_completeness():
 
 
 def get_samples_completeness():
-    samp_comp_df = pd.read_csv("queries_results/fullsome_sample_completeness.csv")
-    samp_count_df = (pd.read_csv("queries_results/fullsome_sample_count.csv").rename(columns={'count': 'total_count'}))
+    samp_comp_df = pd.read_csv("fullsome_sample_completeness.csv")
+    samp_count_df = (pd.read_csv("fullsome_sample_count.csv").rename(columns={'count': 'total_count'}))
     samp_comp_df['complete_samples_count'] = 1
     samp_comp_df = samp_comp_df.drop(['submitter_sample_id'], axis=1).groupby(['program_id_id', 'submitter_donor_id']).sum()
     samples_complete = pd.merge(samp_count_df, samp_comp_df, on=['program_id_id', 'submitter_donor_id'], how="left")
@@ -363,8 +363,8 @@ def get_samples_completeness():
 
 
 def get_donors_completeness():
-    donor_comp_df = pd.read_csv("queries_results/fullsome_donor_completeness.csv")
-    donor_count_df = (pd.read_csv("queries_results/fullsome_donor_count.csv").rename(columns={'count': 'total_count'}))
+    donor_comp_df = pd.read_csv("fullsome_donor_completeness.csv")
+    donor_count_df = (pd.read_csv("fullsome_donor_count.csv").rename(columns={'count': 'total_count'}))
     donor_comp_df['vital_status_complete'] = ((donor_comp_df['is_deceased'].str.contains('Yes') &
                                               donor_comp_df['cause_of_death'].notna() &
                                               donor_comp_df['date_of_death'].notna()) |
@@ -380,7 +380,7 @@ def main():
     args = parse_args()
     # get data for clinical postgresdb
     print("Fetching data from clinical postgres database")
-    for script in glob.glob('queries_results/*.sql'):
+    for script in glob.glob('*.sql'):
         _run_sql_script(script)
     program_minimal_complete_df, complete_donor_samples_df = get_minimal_completeness()
     followup_comp_df = get_followups_completeness()
