@@ -1,5 +1,4 @@
 import pandas as pd
-import numpy as np
 import argparse
 import requests as rq
 import subprocess
@@ -377,11 +376,14 @@ def get_donors_completeness():
 
 def main():
     args = parse_args()
+    clean_url = args.url.rstrip('/')
     # get data for clinical postgresdb
     print("Fetching data from clinical postgres database")
     for script in glob.glob('*.sql'):
         _run_sql_script(script)
     program_minimal_complete_df, complete_donor_samples_df = get_minimal_completeness()
+    complete_donor_samples_df.to_csv("complete_donor_samples.csv")
+    program_minimal_complete_df.to_csv("complete_donor_samples.csv")
     followup_comp_df = get_followups_completeness()
     comorbidity_comp_df = get_comorbidity_completeness()
     radiations_comp_df = get_radiations_completeness()
@@ -421,6 +423,7 @@ def main():
     auto_full_completeness = get_site_data(args.token, args.url)
     sample_list = list(complete_donor_samples_df['submitter_sample_id'])
     genomic_stats = get_genomic_data(args.token, args.url, sample_list)
+    genomic_stats.to_csv("genomic_stats.csv")
     genomic_stats = pd.merge(genomic_stats, complete_donor_samples_df, on="submitter_sample_id")
     donor_list = set(list(complete_donor_samples_df['submitter_donor_id']))
     donor_genomic_status = {
