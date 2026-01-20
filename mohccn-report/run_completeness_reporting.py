@@ -1,5 +1,6 @@
+import copy
+
 import pandas as pd
-import numpy as np
 import argparse
 import requests as rq
 import subprocess
@@ -353,7 +354,8 @@ def get_specimens_completeness():
 
 def get_samples_completeness():
     samp_comp_df = pd.read_csv("fullsome_sample_completeness.csv")
-    samp_count_df = (pd.read_csv("fullsome_sample_count.csv").rename(columns={'count': 'total_count'}))
+    samp_count_df = (pd.read_csv("fullsome_sample_count.csv").rename(columns={'count': 'total_count'}).
+                     groupby(['program_id_id', 'submitter_donor_id']).sum())
     samp_comp_df['complete_samples_count'] = 1
     samp_comp_df = samp_comp_df.drop(['submitter_sample_id'], axis=1).groupby(['program_id_id', 'submitter_donor_id']).sum()
     samples_complete = pd.merge(samp_count_df, samp_comp_df, on=['program_id_id', 'submitter_donor_id'], how="left")
@@ -377,11 +379,16 @@ def get_donors_completeness():
 
 def main():
     args = parse_args()
+    clean_url = args.url.rstrip('/')
     # get data for clinical postgresdb
     print("Fetching data from clinical postgres database")
     for script in glob.glob('*.sql'):
         _run_sql_script(script)
     program_minimal_complete_df, complete_donor_samples_df = get_minimal_completeness()
+    complete_donor_samples_df.to_csv("complete_donor_samples.csv")
+    program_minimal_complete_df.to_csv("program_minimal_complete.csv")
+    if len(complete_donor_samples_df) == 0:
+        print("No minimal complete donors found in the instance")
     followup_comp_df = get_followups_completeness()
     comorbidity_comp_df = get_comorbidity_completeness()
     radiations_comp_df = get_radiations_completeness()
@@ -419,10 +426,17 @@ def main():
     per_donor_clinical_fullsome_complete = joined_completeness.loc[:, ['program_id_id', 'submitter_donor_id', 'donor_fullsome_complete']]
     per_program_fullsome_complete = joined_completeness.loc[:, ['program_id_id', 'donor_fullsome_complete']].groupby('program_id_id', as_index=False).sum()
     auto_full_completeness = get_site_data(args.token, args.url)
-    sample_list = list(complete_donor_samples_df['submitter_sample_id'])
+    samples_count_df = pd.read_csv("fullsome_sample_count.csv")
+    sample_list = list(samples_count_df['submitter_sample_id'])
+    donor_list = set(list(samples_count_df['submitter_donor_id']))
+    samples_comp_df = pd.read_csv("fullsome_sample_completeness.csv")
+    samples_comp_df['combined_sample_type'] = (
+            samples_comp_df['tumour_normal_designation'].astype(str) +
+            "~" + samples_comp_df['sample_type'].astype(str))
     genomic_stats = get_genomic_data(args.token, args.url, sample_list)
-    genomic_stats = pd.merge(genomic_stats, complete_donor_samples_df, on="submitter_sample_id")
-    donor_list = set(list(complete_donor_samples_df['submitter_donor_id']))
+    genomic_stats.to_csv("genomic_stats.csv")
+    genomic_stats = (pd.merge(genomic_stats, samples_count_df.rename(columns={"program_id_id": "program_id"}), on=["program_id", "submitter_sample_id"], how="left").
+                     merge(samples_comp_df.rename(columns={"program_id_id": "program_id"}), on=["program_id", "submitter_donor_id", "submitter_sample_id"], how="left"))
     donor_genomic_status = {
         "submitter_donor_id": [],
         "donors_with_genomic_files_complete": []
@@ -444,12 +458,24 @@ def main():
     genomic_per_program = (full_genomic_stats.loc[:, ['program_id', 'expression_file_count', 'variant_sample_file_count',
                                                      'read_file_count', 'donors_with_genomic_files_complete']].
                            groupby(['program_id'], as_index=False).sum())
-    report_table = (pd.merge(program_minimal_complete_df.rename(columns={"program_id_id": "program_id"}),
-                            per_program_fullsome_complete.rename(columns={"program_id_id": "program_id"}),
-                            on="program_id", how="left").
-                    merge(genomic_per_program, on="program_id", how="left").
-                    merge(auto_full_completeness.drop('cases_missing_data', axis=1).
-                          rename(columns={"complete_donors": "strict_clinical_complete_count"}), on="program_id", how="left"))
+    report_table = copy.deepcopy(auto_full_completeness.drop('cases_missing_data', axis=1).rename(columns={"complete_donors": "strict_clinical_complete_count"}))
+    if len(genomic_per_program) > 0:
+        report_table = report_table.merge(genomic_per_program, on="program_id", how="left")
+    else:
+        report_table["expression_file_count"] = 0
+        report_table["variant_sample_file_count"] = 0
+        report_table["read_file_count"] = 0
+        report_table["donors_with_genomic_files_complete"] = 0
+    if len(per_program_fullsome_complete) > 0:
+        report_table = report_table.merge(per_program_fullsome_complete.rename(columns={"program_id_id": "program_id"}),
+                                          on="program_id", how="left")
+    else:
+        report_table["donor_fullsome_complete"] = 0
+    if len(program_minimal_complete_df) > 0:
+        report_table = report_table.merge(program_minimal_complete_df.rename(columns={"program_id_id": "program_id"}),
+                                          on="program_id", how="left")
+    else:
+        report_table['minimal_complete_clinical_count'] = 0
     report_table['node'] = args.node
     report_table = report_table[['node', 'program_id', 'total_donors', 'minimal_complete_clinical_count',
                                  'donor_fullsome_complete', 'strict_clinical_complete_count',
@@ -458,6 +484,7 @@ def main():
     report_table = report_table.rename(columns={'minimal_complete_clinical_count': 'minimal_clinical_complete_count',
                                                 'donor_fullsome_complete': 'fullsome_clinical_complete_count',
                                                 'donors_with_genomic_files_complete': 'files_complete_count'})
+    report_table = report_table.fillna(0)
     report_table.to_csv("per_program_completeness_report.csv", index=False)
     print("Report saved to 'per_program_completeness_report.csv'")
 
