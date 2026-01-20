@@ -1,3 +1,5 @@
+import copy
+
 import pandas as pd
 import argparse
 import requests as rq
@@ -433,7 +435,8 @@ def main():
             "~" + samples_comp_df['sample_type'].astype(str))
     genomic_stats = get_genomic_data(args.token, args.url, sample_list)
     genomic_stats.to_csv("genomic_stats.csv")
-    genomic_stats = pd.merge(genomic_stats, samples_comp_df, on="submitter_sample_id")
+    genomic_stats = (pd.merge(genomic_stats, samples_count_df.rename(columns={"program_id_id": "program_id"}), on=["program_id", "submitter_sample_id"], how="left").
+                     merge(samples_comp_df.rename(columns={"program_id_id": "program_id"}), on=["program_id", "submitter_donor_id", "submitter_sample_id"], how="left"))
     donor_genomic_status = {
         "submitter_donor_id": [],
         "donors_with_genomic_files_complete": []
@@ -455,12 +458,24 @@ def main():
     genomic_per_program = (full_genomic_stats.loc[:, ['program_id', 'expression_file_count', 'variant_sample_file_count',
                                                      'read_file_count', 'donors_with_genomic_files_complete']].
                            groupby(['program_id'], as_index=False).sum())
-    report_table = (pd.merge(program_minimal_complete_df.rename(columns={"program_id_id": "program_id"}),
-                            per_program_fullsome_complete.rename(columns={"program_id_id": "program_id"}),
-                            on="program_id", how="left").
-                    merge(genomic_per_program, on="program_id", how="left").
-                    merge(auto_full_completeness.drop('cases_missing_data', axis=1).
-                          rename(columns={"complete_donors": "strict_clinical_complete_count"}), on="program_id", how="left"))
+    report_table = copy.deepcopy(auto_full_completeness.drop('cases_missing_data', axis=1).rename(columns={"complete_donors": "strict_clinical_complete_count"}))
+    if len(genomic_per_program) > 0:
+        report_table = report_table.merge(genomic_per_program, on="program_id", how="left")
+    else:
+        report_table["expression_file_count"] = 0
+        report_table["variant_sample_file_count"] = 0
+        report_table["read_file_count"] = 0
+        report_table["donors_with_genomic_files_complete"] = 0
+    if len(per_program_fullsome_complete) > 0:
+        report_table = report_table.merge(per_program_fullsome_complete.rename(columns={"program_id_id": "program_id"}),
+                                          on="program_id", how="left")
+    else:
+        report_table["donor_fullsome_complete"] = 0
+    if len(program_minimal_complete_df) > 0:
+        report_table = report_table.merge(program_minimal_complete_df.rename(columns={"program_id_id": "program_id"}),
+                                          on="program_id", how="left")
+    else:
+        report_table['minimal_complete_clinical_count'] = 0
     report_table['node'] = args.node
     report_table = report_table[['node', 'program_id', 'total_donors', 'minimal_complete_clinical_count',
                                  'donor_fullsome_complete', 'strict_clinical_complete_count',
