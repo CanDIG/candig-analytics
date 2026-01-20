@@ -484,6 +484,7 @@ def main():
     report_table = report_table.rename(columns={'minimal_complete_clinical_count': 'minimal_clinical_complete_count',
                                                 'donor_fullsome_complete': 'fullsome_clinical_complete_count',
                                                 'donors_with_genomic_files_complete': 'files_complete_count'})
+    report_table = report_table.fillna(0)
     report_table.to_csv("per_program_completeness_report.csv", index=False)
     print("Report saved to 'per_program_completeness_report.csv'")
 
