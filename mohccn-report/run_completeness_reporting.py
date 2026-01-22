@@ -356,10 +356,21 @@ def get_samples_completeness():
     samp_comp_df = pd.read_csv("fullsome_sample_completeness.csv")
     samp_count_df = (pd.read_csv("fullsome_sample_count.csv").rename(columns={'count': 'total_count'}).
                      groupby(['program_id_id', 'submitter_donor_id']).sum())
+    samp_comp_df['combined_sample_type'] = (
+            samp_comp_df['tumour_normal_designation'].astype(str) +
+            "~" + samp_comp_df['sample_type'].astype(str))
+    donor_grouped_sample = samp_comp_df.groupby(['program_id_id', 'submitter_donor_id'])[
+        'combined_sample_type'].agg(list).reset_index()
+    donor_grouped_sample['samples_complete'] = donor_grouped_sample['combined_sample_type'].map(
+        check_sample_completeness)
     samp_comp_df['complete_samples_count'] = 1
     samp_comp_df = samp_comp_df.drop(['submitter_sample_id'], axis=1).groupby(['program_id_id', 'submitter_donor_id']).sum()
-    samples_complete = pd.merge(samp_count_df, samp_comp_df, on=['program_id_id', 'submitter_donor_id'], how="left")
-    samples_complete['sample_donor_complete'] = samples_complete['total_count'] == samples_complete['complete_samples_count']
+    samp_comp_df = samp_comp_df.merge(donor_grouped_sample, how="left", on=['program_id_id', 'submitter_donor_id'])
+    samples_complete = pd.merge(samp_count_df, samp_comp_df.drop(['sample_type', 'tumour_normal_designation',
+                                                                  'combined_sample_type_x'], axis=1), on=['program_id_id', 'submitter_donor_id'], how="left")
+    samples_complete['sample_donor_complete'] = ((samples_complete['total_count'] == samples_complete['complete_samples_count']) &
+                                                 samples_complete['samples_complete'])
+
     return samples_complete.rename(columns={'total_count': 'samples_total_count'})
 
 
@@ -421,6 +432,7 @@ def main():
                                                       (~joined_completeness['sys_therapy_donor_complete'].eq(False)) &
                                                       (~joined_completeness['treatment_donor_complete'].eq(False)) &
                                                       (~joined_completeness['specimen_donor_complete'].eq(False)))
+    joined_completeness.to_csv("allobjects_completeness_calcs.csv", index=False)
     all_donor_df = donors_comp_df.loc[:, ["program_id_id", "submitter_donor_id"]]
     minimal_complete_donor_df = complete_donor_samples_df.loc[:, ['program_id_id', 'submitter_donor_id']].drop_duplicates()
     per_donor_clinical_fullsome_complete = joined_completeness.loc[:, ['program_id_id', 'submitter_donor_id', 'donor_fullsome_complete']]
