@@ -433,8 +433,8 @@ def main():
     clean_url = args.url.rstrip('/')
     # get data for clinical postgresdb
     print("Fetching data from clinical postgres database")
-    # for script in glob.glob('*.sql'):
-    #     _run_sql_script(script)
+    for script in glob.glob('*.sql'):
+        _run_sql_script(script)
     (program_minimal_tier_a_complete_df, program_minimal_tier_b_complete_df,
      complete_donor_samples_df) = get_minimal_completeness()
     complete_donor_samples_df.to_csv("complete_donor_samples.csv")
