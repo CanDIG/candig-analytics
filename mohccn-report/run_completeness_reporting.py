@@ -20,28 +20,29 @@ def parse_args():
     return args
 
 
-def get_site_data(token, url):
-    print("Fetching data completeness data from CanDIG instance")
-    headers = {"Authorization": f"Bearer {token}",
-               "Content-Type": "application/json; charset=utf-8"
-               }
-    response = rq.get(f"{url}/query/discovery/programs", headers=headers)
-    if response:
-        full_clinical_completeness = {
-            "program_id": [],
-            "total_donors": [],
-            "complete_donors": [],
-            "cases_missing_data": []
-        }
-        for program in response.json()['programs']:
-            full_clinical_completeness['program_id'].append(program['program_id'])
-            full_clinical_completeness['total_donors'].append(program['metadata']['summary_cases']['total_cases'])
-            full_clinical_completeness['complete_donors'].append(program['metadata']['summary_cases']['complete_cases'])
-            full_clinical_completeness['cases_missing_data'].append(program['metadata']['cases_missing_data'])
-        return pd.DataFrame(full_clinical_completeness)
-    else:
-        print("Could not retrieve programs, try getting a new token and run the script again.")
-        sys.exit()
+# We don't use this for now since the auto completeness is not useful
+# def get_site_data(token, url):
+#     print("Fetching data completeness data from CanDIG instance")
+#     headers = {"Authorization": f"Bearer {token}",
+#                "Content-Type": "application/json; charset=utf-8"
+#                }
+#     response = rq.get(f"{url}/query/discovery/programs", headers=headers)
+#     if response:
+#         full_clinical_completeness = {
+#             "program_id": [],
+#             "total_donors": [],
+#             "complete_donors": [],
+#             "cases_missing_data": []
+#         }
+#         for program in response.json()['programs']:
+#             full_clinical_completeness['program_id'].append(program['program_id'])
+#             full_clinical_completeness['total_donors'].append(program['metadata']['summary_cases']['total_cases'])
+#             full_clinical_completeness['complete_donors'].append(program['metadata']['summary_cases']['complete_cases'])
+#             full_clinical_completeness['cases_missing_data'].append(program['metadata']['cases_missing_data'])
+#         return pd.DataFrame(full_clinical_completeness)
+#     else:
+#         print("Could not retrieve programs, try getting a new token and run the script again.")
+#         sys.exit()
 
 
 def get_genomic_data(token, url, sample_list):
@@ -74,9 +75,9 @@ def get_genomic_data(token, url, sample_list):
         sys.exit()
 
 
-def check_sample_completeness(sample_types: list):
+def check_sample_tier_a_completeness(sample_types: list):
     """
-    A donor is considered complete if there are:
+    A donor is considered Tier A complete if there are:
        - 1 normal DNA
        - 1 tumour DNA
        - 1 tumour RNA
@@ -90,30 +91,35 @@ def check_sample_completeness(sample_types: list):
         return False
 
 
-def check_genomic_completeness(genomic_stats):
+def check_sample_tier_b_completeness(sample_types: list):
     """
-    A donor is considered for genomic files if they have:
-       - 1 normal DNA sample with 1 variant file and 1 reads file
-       - 1 tumour DNA sample with 1 variant file and 1 reads file
+    A donor is considered Tier A complete if there are:
+       - 1 normal DNA
+       - 1 tumour DNA
+       - 1 tumour RNA
+    """
+    normal_dna_count = sample_types.count('Normal~Total DNA')
+    tumour_dna_count = sample_types.count('Tumour~Total DNA')
+    if normal_dna_count >= 1 and tumour_dna_count >= 1:
+        return True
+    else:
+        return False
+
+
+def check_genomic_tier_a_completeness(genomic_stats):
+    """
+    A donor is considered tier a complete for genomic files if they have:
+       - 1 normal DNA sample with 1 variant file
+       - 1 tumour DNA sample with 1 variant file
        - 1 tumour RNA sample with 1 expression file
     """
-    normal_dna_reads_count = 0
     normal_dna_variant_count = 0
-    tumour_dna_reads_count = 0
     tumour_dna_variant_count = 0
     tumour_rna_expressions_count = 0
     if len(genomic_stats.loc[(genomic_stats['expression_file_count'] >= 1) &
                              (genomic_stats['tumour_normal_designation'] == "Tumour")]) > 0:
         tumour_rna_expressions_count = len(genomic_stats.loc[(genomic_stats['expression_file_count'] >= 1) &
                                                              (genomic_stats['tumour_normal_designation'] == "Tumour")])
-    if len(genomic_stats.loc[(genomic_stats['read_file_count'] >= 1) &
-                             (genomic_stats['tumour_normal_designation'] == "Tumour")]) > 0:
-        tumour_dna_reads_count = len(genomic_stats.loc[(genomic_stats['read_file_count'] >= 1) &
-                                                       (genomic_stats['tumour_normal_designation'] == "Tumour")])
-    if len(genomic_stats.loc[(genomic_stats['read_file_count'] >= 1) &
-                             (genomic_stats['tumour_normal_designation'] == "Normal")]) > 0:
-        normal_dna_reads_count = len(genomic_stats.loc[(genomic_stats['read_file_count'] >= 1) &
-                                                       (genomic_stats['tumour_normal_designation'] == "Normal")])
     if len(genomic_stats.loc[(genomic_stats['variant_sample_file_count'] >= 1) &
                              (genomic_stats['tumour_normal_designation'] == "Normal")]) > 0:
         normal_dna_variant_count = len(genomic_stats.loc[(genomic_stats['variant_sample_file_count'] >= 1) &
@@ -122,8 +128,29 @@ def check_genomic_completeness(genomic_stats):
                              (genomic_stats['tumour_normal_designation'] == "Tumour")]) > 0:
         tumour_dna_variant_count = len(genomic_stats.loc[(genomic_stats['variant_sample_file_count'] >= 1) &
                                                          (genomic_stats['tumour_normal_designation'] == "Tumour")])
-    if all([normal_dna_variant_count, normal_dna_reads_count, tumour_rna_expressions_count, tumour_dna_reads_count,
-            tumour_dna_variant_count]) > 0:
+    if all([normal_dna_variant_count, tumour_rna_expressions_count, tumour_dna_variant_count]) > 0:
+        return True
+    else:
+        return False
+
+
+def check_genomic_tier_b_completeness(genomic_stats):
+    """
+    A donor is considered tier b complete for genomic files if they have:
+       - 1 normal DNA sample with 1 variant file and 1 reads file
+       - 1 tumour DNA sample with 1 variant file and 1 reads file
+    """
+    normal_dna_variant_count = 0
+    tumour_dna_variant_count = 0
+    if len(genomic_stats.loc[(genomic_stats['variant_sample_file_count'] >= 1) &
+                             (genomic_stats['tumour_normal_designation'] == "Normal")]) > 0:
+        normal_dna_variant_count = len(genomic_stats.loc[(genomic_stats['variant_sample_file_count'] >= 1) &
+                                                         (genomic_stats['tumour_normal_designation'] == "Normal")])
+    if len(genomic_stats.loc[(genomic_stats['variant_sample_file_count'] >= 1) &
+                             (genomic_stats['tumour_normal_designation'] == "Tumour")]) > 0:
+        tumour_dna_variant_count = len(genomic_stats.loc[(genomic_stats['variant_sample_file_count'] >= 1) &
+                                                         (genomic_stats['tumour_normal_designation'] == "Tumour")])
+    if all([normal_dna_variant_count, tumour_dna_variant_count]) > 0:
         return True
     else:
         return False
@@ -145,6 +172,13 @@ def _run_sql_script(script_name):
     subprocess.run(["docker", "exec", "-i", "candigv2_postgres-db_1", "rm", f"/tmp/{script_name}"])
 
 
+def bool_str_map(bool_to_map: bool):
+    if bool_to_map:
+        return "yes"
+    else:
+        return "no"
+
+
 def get_minimal_completeness():
     minimal_completeness_df = pd.read_csv("minimal_completeness.csv")
     minimal_completeness_df['combined_sample_type'] = (
@@ -152,13 +186,26 @@ def get_minimal_completeness():
                 "~" + minimal_completeness_df['sample_type'].astype(str))
     donor_grouped_sample = minimal_completeness_df.groupby(['program_id_id', 'submitter_donor_id'])[
         'combined_sample_type'].agg(list).reset_index()
-    donor_grouped_sample['samples_complete'] = donor_grouped_sample['combined_sample_type'].map(
-        check_sample_completeness)
-    minimal_complete_donor_list = list(
-        donor_grouped_sample.loc[donor_grouped_sample['samples_complete']].submitter_donor_id)
-    complete_donor_samples_df = minimal_completeness_df.loc[minimal_completeness_df['submitter_donor_id'].isin(minimal_complete_donor_list)]
-    program_minimal_complete_df = donor_grouped_sample.loc[donor_grouped_sample['samples_complete']].groupby('program_id_id').size().to_frame('minimal_complete_clinical_count').reset_index()
-    return program_minimal_complete_df, complete_donor_samples_df
+    donor_grouped_sample['tier_a_samples_complete'] = donor_grouped_sample['combined_sample_type'].map(
+        check_sample_tier_a_completeness)
+    donor_grouped_sample['tier_b_samples_complete'] = donor_grouped_sample['combined_sample_type'].map(
+        check_sample_tier_b_completeness)
+    minimal_tier_a_complete_donor_list = list(
+        donor_grouped_sample.loc[donor_grouped_sample['tier_a_samples_complete']].submitter_donor_id)
+    minimal_tier_b_complete_donor_list = list(
+        donor_grouped_sample.loc[donor_grouped_sample['tier_b_samples_complete']].submitter_donor_id)
+    minimal_tier_b_complete_donor_list = list(set(minimal_tier_b_complete_donor_list) - set(minimal_tier_a_complete_donor_list))
+    minimal_completeness_df['tier_a_clinical_complete'] = minimal_completeness_df['submitter_donor_id'].isin(
+        minimal_tier_a_complete_donor_list)
+    minimal_completeness_df['tier_b_clinical_complete'] = minimal_completeness_df['submitter_donor_id'].isin(
+        minimal_tier_b_complete_donor_list)
+    program_minimal_tier_a_complete_df = donor_grouped_sample.loc[
+        donor_grouped_sample['tier_a_samples_complete']].groupby('program_id_id').size().to_frame(
+        'minimal_complete_clinical_count').reset_index()
+    program_minimal_tier_b_complete_df = donor_grouped_sample.loc[
+        donor_grouped_sample['tier_b_samples_complete']].groupby('program_id_id').size().to_frame(
+        'minimal_complete_clinical_count').reset_index()
+    return program_minimal_tier_a_complete_df, program_minimal_tier_b_complete_df, minimal_completeness_df
 
 
 def check_column_equality(row, col1, col2):
@@ -273,8 +320,10 @@ def get_treatments_completeness():
         columns={'count': 'total_count'})
     sys_therapy_treatment_list = list(treatment_comp_df.loc[treatment_comp_df['treatment_type'].str.contains('Systemic therapy', na=False), 'submitter_treatment_id'])
     sys_therapy_treatment_type_intersection = set(sys_therapy_treatment_list).intersection(set(sys_therapy_count_df['submitter_treatment_id']))
-    treatment_comp_df["sys_therapy_complete"] = (treatment_comp_df['treatment_type'].str.contains('Systemic therapy', na=False) &
-                                                 treatment_comp_df['submitter_treatment_id'].isin(sys_therapy_treatment_type_intersection))
+    treatment_comp_df["sys_therapy_complete"] = (treatment_comp_df['treatment_type'].str.contains(
+        'Systemic therapy', na=False) & treatment_comp_df[
+        'submitter_treatment_id'].isin(sys_therapy_treatment_type_intersection))
+    treatment_comp_df["sys_therapy_complete"] = treatment_comp_df["sys_therapy_complete"].apply(lambda x: bool_str_map(x))
     treatment_comp_df.loc[~treatment_comp_df["treatment_type"].str.contains('Systemic therapy', na=False), ['sys_therapy_complete']] = None
 
     radiation_treatment_list = list(treatment_comp_df.loc[treatment_comp_df['treatment_type'].str.contains('Radiation therapy', na=False), 'submitter_treatment_id'])
@@ -283,6 +332,7 @@ def get_treatments_completeness():
     treatment_comp_df["radiation_complete"] = (
                 treatment_comp_df['treatment_type'].str.contains('Radiation therapy', na=False) &
                 treatment_comp_df['submitter_treatment_id'].isin(radiation_treatment_type_intersection))
+    treatment_comp_df["radiation_complete"] = treatment_comp_df["radiation_complete"].apply(lambda x: bool_str_map(x))
     treatment_comp_df.loc[~treatment_comp_df["treatment_type"].str.contains('Radiation therapy', na=False), [
         'radiation_complete']] = None
     surgery_treatment_list = list(treatment_comp_df.loc[treatment_comp_df['treatment_type'].str.contains('Surgery', na=False), 'submitter_treatment_id'])
@@ -291,6 +341,7 @@ def get_treatments_completeness():
     treatment_comp_df["surgery_complete"] = (
             treatment_comp_df['treatment_type'].str.contains('Surgery', na=False) &
             treatment_comp_df['submitter_treatment_id'].isin(surgery_treatment_type_intersection))
+    treatment_comp_df["surgery_complete"] = treatment_comp_df["surgery_complete"].apply(lambda x: bool_str_map(x))
     treatment_comp_df.loc[~treatment_comp_df["treatment_type"].str.contains('Surgery', na=False), [
         'surgery_complete']] = None
     treatment_comp_df['treatment_complete'] = ~treatment_comp_df[['sys_therapy_complete', "radiation_complete", "surgery_complete"]].eq(False).any(axis=1)
@@ -382,11 +433,11 @@ def main():
     clean_url = args.url.rstrip('/')
     # get data for clinical postgresdb
     print("Fetching data from clinical postgres database")
-    for script in glob.glob('*.sql'):
-        _run_sql_script(script)
-    program_minimal_complete_df, complete_donor_samples_df = get_minimal_completeness()
+    # for script in glob.glob('*.sql'):
+    #     _run_sql_script(script)
+    (program_minimal_tier_a_complete_df, program_minimal_tier_b_complete_df,
+     complete_donor_samples_df) = get_minimal_completeness()
     complete_donor_samples_df.to_csv("complete_donor_samples.csv")
-    program_minimal_complete_df.to_csv("program_minimal_complete.csv")
     if len(complete_donor_samples_df) == 0:
         print("No minimal complete donors found in the instance")
     followup_comp_df = get_followups_completeness()
@@ -422,10 +473,14 @@ def main():
                                                       (~joined_completeness['treatment_donor_complete'].eq(False)) &
                                                       (~joined_completeness['specimen_donor_complete'].eq(False)))
     all_donor_df = donors_comp_df.loc[:, ["program_id_id", "submitter_donor_id"]]
-    minimal_complete_donor_df = complete_donor_samples_df.loc[:, ['program_id_id', 'submitter_donor_id']].drop_duplicates()
+    minimal_complete_donor_df = complete_donor_samples_df.loc[:, ['program_id_id', 'submitter_donor_id',
+                                                                  'tier_a_clinical_complete',
+                                                                  'tier_b_clinical_complete']].drop_duplicates(
+    ).rename({'tier_a_clinical_complete': 'tier_a_minimal_clinical_complete',
+              'tier_b_clinical_complete': 'tier_b_minimal_clinical_complete'})
     per_donor_clinical_fullsome_complete = joined_completeness.loc[:, ['program_id_id', 'submitter_donor_id', 'donor_fullsome_complete']]
     per_program_fullsome_complete = joined_completeness.loc[:, ['program_id_id', 'donor_fullsome_complete']].groupby('program_id_id', as_index=False).sum()
-    auto_full_completeness = get_site_data(args.token, args.url)
+    # auto_full_completeness = get_site_data(args.token, args.url)
     samples_count_df = pd.read_csv("fullsome_sample_count.csv")
     sample_list = list(samples_count_df['submitter_sample_id'])
     donor_list = set(list(samples_count_df['submitter_donor_id']))
@@ -439,51 +494,59 @@ def main():
                      merge(samples_comp_df.rename(columns={"program_id_id": "program_id"}), on=["program_id", "submitter_donor_id", "submitter_sample_id"], how="left"))
     donor_genomic_status = {
         "submitter_donor_id": [],
-        "donors_with_genomic_files_complete": []
+        "tier_a_genomic_files_complete": [],
+        "tier_b_genomic_files_complete": []
     }
     for donor in donor_list:
         donor_genomic_status['submitter_donor_id'].append(donor)
         donor_stats = genomic_stats.loc[genomic_stats['submitter_donor_id'] == donor]
         if len(donor_stats) == 0:
-            donor_genomic_status['donors_with_genomic_files_complete'].append(False)
+            donor_genomic_status['tier_a_genomic_files_complete'].append(False)
+            donor_genomic_status['tier_b_genomic_files_complete'].append(False)
         else:
-            donor_complete = check_genomic_completeness(donor_stats)
-            donor_genomic_status['donors_with_genomic_files_complete'].append(donor_complete)
+            donor_tier_a_complete = check_genomic_tier_a_completeness(donor_stats)
+            donor_genomic_status['tier_a_genomic_files_complete'].append(donor_tier_a_complete)
+            if donor_tier_a_complete:
+                donor_genomic_status['tier_b_genomic_files_complete'].append(False)
+            else:
+                donor_tier_b_complete = check_genomic_tier_b_completeness(donor_stats)
+                donor_genomic_status['tier_b_genomic_files_complete'].append(donor_tier_b_complete)
     genomic_stats_per_donor = genomic_stats.groupby(['program_id', 'submitter_donor_id'], as_index=False).sum()
     full_genomic_stats = pd.merge(genomic_stats_per_donor, pd.DataFrame(donor_genomic_status),
                                   on='submitter_donor_id').loc[:, ['program_id', 'submitter_donor_id',
-                                                                   'submitter_sample_id', 'expression_file_count',
+                                                                   'expression_file_count',
                                                                    'variant_sample_file_count', 'read_file_count',
-                                                                   'donors_with_genomic_files_complete']]
+                                                                   'tier_a_genomic_files_complete',
+                                                                   'tier_b_genomic_files_complete']]
     genomic_per_program = (full_genomic_stats.loc[:, ['program_id', 'expression_file_count', 'variant_sample_file_count',
-                                                     'read_file_count', 'donors_with_genomic_files_complete']].
+                                                      'read_file_count', 'tier_a_genomic_files_complete',
+                                                      'tier_b_genomic_files_complete']].
                            groupby(['program_id'], as_index=False).sum())
-    report_table = copy.deepcopy(auto_full_completeness.drop('cases_missing_data', axis=1).rename(columns={"complete_donors": "strict_clinical_complete_count"}))
-    if len(genomic_per_program) > 0:
-        report_table = report_table.merge(genomic_per_program, on="program_id", how="left")
-    else:
-        report_table["expression_file_count"] = 0
-        report_table["variant_sample_file_count"] = 0
-        report_table["read_file_count"] = 0
-        report_table["donors_with_genomic_files_complete"] = 0
-    if len(per_program_fullsome_complete) > 0:
-        report_table = report_table.merge(per_program_fullsome_complete.rename(columns={"program_id_id": "program_id"}),
-                                          on="program_id", how="left")
-    else:
-        report_table["donor_fullsome_complete"] = 0
-    if len(program_minimal_complete_df) > 0:
-        report_table = report_table.merge(program_minimal_complete_df.rename(columns={"program_id_id": "program_id"}),
-                                          on="program_id", how="left")
-    else:
-        report_table['minimal_complete_clinical_count'] = 0
+    clinical_genomic_completeness = joined_completeness.loc[:,
+                                    ['program_id_id', 'submitter_donor_id', 'donor_fullsome_complete']].rename(
+        columns={"program_id_id": "program_id"}).merge(full_genomic_stats, on=['program_id', 'submitter_donor_id'],
+                                                       how='left').merge(
+        minimal_complete_donor_df.rename(columns={"program_id_id": "program_id"}),
+        on=['program_id', 'submitter_donor_id'], how='left')
+    clinical_genomic_completeness['tier_a_full_complete'] = (clinical_genomic_completeness['tier_a_genomic_files_complete']
+                                                             & clinical_genomic_completeness['tier_a_clinical_complete'])
+    clinical_genomic_completeness['tier_b_full_complete'] = clinical_genomic_completeness[
+                                                                'tier_b_genomic_files_complete'] & \
+                                                            clinical_genomic_completeness['tier_b_clinical_complete']
+    clinical_genomic_completeness['fully_fullsome_complete'] = (clinical_genomic_completeness['donor_fullsome_complete']
+                                                                & clinical_genomic_completeness['tier_a_genomic_files_complete'])
+    clinical_genomic_completeness.to_csv("per_donor_full_completeness.csv")
+    # summarize by program
+    report_table = copy.deepcopy(clinical_genomic_completeness)
+    report_table['donor_count'] = 1
+    report_table = report_table.drop(['submitter_donor_id', 'donor_fullsome_complete', ], axis=1).groupby(['program_id'], as_index=False).sum()
+    report_table['incomplete_donors'] = report_table['donor_count'] - (report_table['tier_a_full_complete'] +
+                                                                       report_table['tier_b_full_complete'])
     report_table['node'] = args.node
-    report_table = report_table[['node', 'program_id', 'total_donors', 'minimal_complete_clinical_count',
-                                 'donor_fullsome_complete', 'strict_clinical_complete_count',
-                                 'donors_with_genomic_files_complete',
-                                 'read_file_count', 'variant_sample_file_count', 'expression_file_count']]
-    report_table = report_table.rename(columns={'minimal_complete_clinical_count': 'minimal_clinical_complete_count',
-                                                'donor_fullsome_complete': 'fullsome_clinical_complete_count',
-                                                'donors_with_genomic_files_complete': 'files_complete_count'})
+    report_table = report_table[['node', 'program_id', 'donor_count', 'tier_a_full_complete',
+                                 'tier_b_full_complete', 'incomplete_donors',
+                                 'fully_fullsome_complete']]
+    report_table = report_table.rename(columns={'fully_fullsome_complete': 'fullsome_cg_complete'})
     report_table = report_table.fillna(0)
     report_table.to_csv("per_program_completeness_report.csv", index=False)
     print("Report saved to 'per_program_completeness_report.csv'")
