@@ -433,9 +433,9 @@ def main():
     clean_url = args.url.rstrip('/')
     # get data for clinical postgresdb
     print("Fetching data from clinical postgres database")
-    # subprocess.run(["mkdir", "sql_outputs"])
-    # for script in glob.glob('*.sql'):
-    #     _run_sql_script(script)
+    subprocess.run(["mkdir", "sql_outputs"])
+    for script in glob.glob('*.sql'):
+        _run_sql_script(script)
     (program_minimal_tier_a_complete_df, program_minimal_tier_b_complete_df,
      complete_donor_samples_df) = get_minimal_completeness()
     complete_donor_samples_df.to_csv("complete_donor_samples.csv")
@@ -480,9 +480,6 @@ def main():
                                                                   'tier_b_clinical_complete']].drop_duplicates(
     ).rename({'tier_a_clinical_complete': 'tier_a_minimal_clinical_complete',
               'tier_b_clinical_complete': 'tier_b_minimal_clinical_complete'})
-    per_donor_clinical_fullsome_complete = joined_completeness.loc[:, ['program_id_id', 'submitter_donor_id', 'donor_fullsome_complete']]
-    per_program_fullsome_complete = joined_completeness.loc[:, ['program_id_id', 'donor_fullsome_complete']].groupby('program_id_id', as_index=False).sum()
-    # auto_full_completeness = get_site_data(args.token, args.url)
     samples_count_df = pd.read_csv("sql_outputs/fullsome_sample_count.csv")
     sample_list = list(samples_count_df['submitter_sample_id'])
     donor_list = set(list(samples_count_df['submitter_donor_id']))
@@ -520,10 +517,6 @@ def main():
                                                                    'variant_sample_file_count', 'read_file_count',
                                                                    'tier_a_genomic_files_complete',
                                                                    'tier_b_genomic_files_complete']]
-    genomic_per_program = (full_genomic_stats.loc[:, ['program_id', 'expression_file_count', 'variant_sample_file_count',
-                                                      'read_file_count', 'tier_a_genomic_files_complete',
-                                                      'tier_b_genomic_files_complete']].
-                           groupby(['program_id'], as_index=False).sum())
     clinical_genomic_completeness = joined_completeness.loc[:,
                                     ['program_id_id', 'submitter_donor_id', 'donor_fullsome_complete']].rename(
         columns={"program_id_id": "program_id"}).merge(full_genomic_stats, on=['program_id', 'submitter_donor_id'],
@@ -553,8 +546,9 @@ def main():
     report_table = report_table.fillna(0)
     report_table.to_csv("per_program_completeness_report.csv", index=False)
     print("Report saved to 'per_program_completeness_report.csv'")
-    # print("Removing sql outputs")
-    # subprocess.run(["rm", "-r", "sql_outputs"])
+    print("Removing sql outputs...")
+    subprocess.run(["rm", "-r", "sql_outputs"])
+    print("All done!")
 
 
 if __name__ == "__main__":
