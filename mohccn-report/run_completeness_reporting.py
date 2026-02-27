@@ -158,16 +158,17 @@ def check_genomic_tier_b_completeness(genomic_stats):
 
 def _run_sql_script(script_name):
     """copy script to the docker container, run script, copy outputs, delete outputs"""
+    subprocess.run(["mkdir", "sql_outputs"])
     stem_name = script_name.split(".sql")[0]
     subprocess.run(["docker", "cp", script_name, f"candigv2_postgres-db_1:/tmp/{script_name}"])
     result = subprocess.run(
         [f"docker exec -i candigv2_postgres-db_1 psql -U {PSQL_USER} -d clinical -f /tmp/{script_name}"],
         shell=True, stdout=subprocess.PIPE)
     subprocess.run(
-        ["docker", "cp", f"candigv2_postgres-db_1:/tmp/{stem_name}_count.csv", f"{stem_name}_count.csv"])
+        ["docker", "cp", f"candigv2_postgres-db_1:/tmp/{stem_name}_count.csv", f"sql_outputs/{stem_name}_count.csv"])
     subprocess.run(["docker", "exec", "-i", "candigv2_postgres-db_1", "rm", f"/tmp/{stem_name}_count.csv"])
     subprocess.run(
-        ["docker", "cp", f"candigv2_postgres-db_1:/tmp/{stem_name}_completeness.csv", f"{stem_name}_completeness.csv"])
+        ["docker", "cp", f"candigv2_postgres-db_1:/tmp/{stem_name}_completeness.csv", f"sql_outputs/{stem_name}_completeness.csv"])
     subprocess.run(["docker", "exec", "-i", "candigv2_postgres-db_1", "rm", f"/tmp/{stem_name}_completeness.csv"])
     subprocess.run(["docker", "exec", "-i", "candigv2_postgres-db_1", "rm", f"/tmp/{script_name}"])
 
@@ -550,6 +551,8 @@ def main():
     report_table = report_table.fillna(0)
     report_table.to_csv("per_program_completeness_report.csv", index=False)
     print("Report saved to 'per_program_completeness_report.csv'")
+    print("Removing sql outputs")
+    subprocess.run(["rm", "-r", "sql_outputs"])
 
 
 if __name__ == "__main__":
