@@ -158,7 +158,6 @@ def check_genomic_tier_b_completeness(genomic_stats):
 
 def _run_sql_script(script_name):
     """copy script to the docker container, run script, copy outputs, delete outputs"""
-    subprocess.run(["mkdir", "sql_outputs"])
     stem_name = script_name.split(".sql")[0]
     subprocess.run(["docker", "cp", script_name, f"candigv2_postgres-db_1:/tmp/{script_name}"])
     result = subprocess.run(
@@ -434,8 +433,9 @@ def main():
     clean_url = args.url.rstrip('/')
     # get data for clinical postgresdb
     print("Fetching data from clinical postgres database")
-    for script in glob.glob('*.sql'):
-        _run_sql_script(script)
+    # subprocess.run(["mkdir", "sql_outputs"])
+    # for script in glob.glob('*.sql'):
+    #     _run_sql_script(script)
     (program_minimal_tier_a_complete_df, program_minimal_tier_b_complete_df,
      complete_donor_samples_df) = get_minimal_completeness()
     complete_donor_samples_df.to_csv("complete_donor_samples.csv")
@@ -473,6 +473,7 @@ def main():
                                                       (~joined_completeness['sys_therapy_donor_complete'].eq(False)) &
                                                       (~joined_completeness['treatment_donor_complete'].eq(False)) &
                                                       (~joined_completeness['specimen_donor_complete'].eq(False)))
+    joined_completeness.sort_values(['program_id_id', 'submitter_donor_id']).to_csv("per_donor_clinical_completeness_full_breakdown.csv", index=False)
     all_donor_df = donors_comp_df.loc[:, ["program_id_id", "submitter_donor_id"]]
     minimal_complete_donor_df = complete_donor_samples_df.loc[:, ['program_id_id', 'submitter_donor_id',
                                                                   'tier_a_clinical_complete',
@@ -490,7 +491,7 @@ def main():
             samples_comp_df['tumour_normal_designation'].astype(str) +
             "~" + samples_comp_df['sample_type'].astype(str))
     genomic_stats = get_genomic_data(args.token, args.url, sample_list)
-    genomic_stats.to_csv("genomic_stats.csv")
+    genomic_stats.to_csv("per_sample_genomic_stats.csv", index=False)
     genomic_stats = (pd.merge(genomic_stats, samples_count_df.rename(columns={"program_id_id": "program_id"}), on=["program_id", "submitter_sample_id"], how="left").
                      merge(samples_comp_df.rename(columns={"program_id_id": "program_id"}), on=["program_id", "submitter_donor_id", "submitter_sample_id"], how="left"))
     donor_genomic_status = {
@@ -536,7 +537,7 @@ def main():
                                                             clinical_genomic_completeness['tier_b_clinical_complete']
     clinical_genomic_completeness['fully_fullsome_complete'] = (clinical_genomic_completeness['donor_fullsome_complete']
                                                                 & clinical_genomic_completeness['tier_a_genomic_files_complete'])
-    clinical_genomic_completeness.to_csv("per_donor_full_completeness.csv")
+    clinical_genomic_completeness.to_csv("per_donor_full_completeness.csv", index=False)
     # summarize by program
     report_table = copy.deepcopy(clinical_genomic_completeness)
     report_table['donor_count'] = 1
@@ -546,13 +547,14 @@ def main():
     report_table['node'] = args.node
     report_table = report_table[['node', 'program_id', 'donor_count', 'tier_a_full_complete',
                                  'tier_b_full_complete', 'incomplete_donors',
-                                 'fully_fullsome_complete']]
+                                 'fully_fullsome_complete', 'tier_a_clinical_complete', 'tier_a_genomic_files_complete',
+                                 'tier_b_clinical_complete', 'tier_b_genomic_files_complete']]
     report_table = report_table.rename(columns={'fully_fullsome_complete': 'fullsome_cg_complete'})
     report_table = report_table.fillna(0)
     report_table.to_csv("per_program_completeness_report.csv", index=False)
     print("Report saved to 'per_program_completeness_report.csv'")
-    print("Removing sql outputs")
-    subprocess.run(["rm", "-r", "sql_outputs"])
+    # print("Removing sql outputs")
+    # subprocess.run(["rm", "-r", "sql_outputs"])
 
 
 if __name__ == "__main__":
