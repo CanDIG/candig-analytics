@@ -80,6 +80,12 @@ def get_genomic_data(token, url, sample_list):
         pprint.pprint(response.json())
         print("Could not retrieve genomic data, try getting a new token and run the script again.")
         sys.exit()
+    else:
+        print(f"Response status code: {response.status_code}")
+        print(f"Returned response:")
+        pprint.pprint(response.json())
+        print("WARN: Could not retrieve genomic data, continuing but if you have genomic data ingested, please reach out for help to debug this.")
+        return pd.DataFrame(genomic_completeness_dict)
 
 
 def check_sample_tier_a_completeness(sample_types: list):
