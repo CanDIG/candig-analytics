@@ -443,9 +443,9 @@ def main():
     file_prefix = datetime.datetime.now().strftime("%Y-%m-%d_%H%M") + '-' + args.node + '-'
     # get data for clinical postgresdb
     print("Fetching data from clinical postgres database")
-    # subprocess.run(["mkdir", "sql_outputs"])
-    # for script in glob.glob('*.sql'):
-    #     _run_sql_script(script)
+    subprocess.run(["mkdir", "sql_outputs"])
+    for script in glob.glob('*.sql'):
+        _run_sql_script(script)
     # Get minimal clinical Completeness stats
     (program_minimal_tier_a_complete_df, program_minimal_tier_b_complete_df,
      complete_donor_samples_df) = get_minimal_completeness()
@@ -575,8 +575,8 @@ def main():
     report_table = report_table.fillna(0)
     report_table.to_csv(f"{file_prefix}per_program_completeness_report.csv", index=False)
     print(f"Summary Report saved to '{file_prefix}per_program_completeness_report.csv'")
-    # print("Removing sql outputs...")
-    # subprocess.run(["rm", "-r", "sql_outputs"])
+    print("Removing sql outputs...")
+    subprocess.run(["rm", "-r", "sql_outputs"])
     print("All done!")
 
 
