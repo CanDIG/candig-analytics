@@ -59,6 +59,29 @@ You will need to provide:
 - At least one VCF that contains samples from the DNA normal and DNA tumour
 - An Expression matrix linked to the RNA tumour sample
 
+**Minimal clinical completeness**
+
+The fields below need to have a valid value (including `Not available`) to be counted as complete:
+
+- `donor`
+  - `gender`
+  - `sex_at_birth`
+  - `date_of_birth`
+  - `date_resolution`
+- `primary diagnosis`
+  - `date_of_diagnosis`
+  - `cancer_type_code`
+  - `primary_site`
+  - `basis_of_diagnosis`
+- `specimen`
+  - `specimen_collection_date`
+  - `specimen_anatomic_location`
+- `sample registration`
+  - `specimen_tissue_source`
+  - `tumour_normal_designation`
+  - `specimen_type`
+  - `sample_type`
+
 **DNA sample:**
 
 A sample is counted as `DNA` if the `sample_registration.sample_type` is one of
