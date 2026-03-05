@@ -8,6 +8,7 @@ import sys
 import glob
 import datetime
 import pprint
+from pathlib import Path
 
 PSQL_USER="admin"
 
@@ -18,6 +19,8 @@ def parse_args():
     parser.add_argument('--token', type=str, required=True, help="site admin token for the candig deployment you are retrieving data from.")
     parser.add_argument('--url', type=str, required=True, help="URL of the candig deployment you are retrieving data from")
     parser.add_argument('--node', type=str, required=True, help="name of the node running the report, e.g. UHN")
+    parser.add_argument('--no-sql', action="store_true", required=False, help="don't run the sql reports again, mainly used for debugging")
+    parser.add_argument('--dont-delete-sql-outputs', action="store_true", required=False, help="don't delete the sql outputs, mainly used for debugging")
     args = parser.parse_args()
     return args
 
@@ -48,7 +51,7 @@ def parse_args():
 
 
 def get_genomic_data(token, url, sample_list):
-    print("Fetching genomic object data from CanDIG")
+    print(f"Fetching genomic object data from CanDIG instance at {url}")
     genomic_completeness_dict = {
         "program_id": [],
         "submitter_sample_id": [],
@@ -95,9 +98,20 @@ def check_sample_tier_a_completeness(sample_types: list):
        - 1 tumour DNA
        - 1 tumour RNA
     """
-    normal_dna_count = sample_types.count('Normal~Total DNA')
-    tumour_dna_count = sample_types.count('Tumour~Total DNA')
-    tumour_rna_count = sample_types.count('Tumour~Total RNA')
+    dna_values = ["Total DNA", "Amplified DNA", "ctDNA", "Other DNA enrichments", "Whole cell - DNA"]
+    rna_values = ["Total RNA", "Other RNA fractions", "polyA+ RNA", "rRNA-depleted RNA", "Whole cell - RNA"]
+    normal_dna_count = 0
+    tumour_dna_count = 0
+    tumour_rna_count = 0
+    for sample_type in sample_types:
+        split_type = sample_type.split("~")
+        if split_type[0] == "Normal" and split_type[1] in dna_values:
+            normal_dna_count += 1
+        if split_type[0] == "Tumour":
+            if split_type[1] in rna_values:
+                tumour_rna_count += 1
+            elif split_type[1] in dna_values:
+                tumour_dna_count += 1
     if normal_dna_count >= 1 and tumour_dna_count >= 1 and tumour_rna_count >= 1:
         return True
     else:
@@ -106,13 +120,19 @@ def check_sample_tier_a_completeness(sample_types: list):
 
 def check_sample_tier_b_completeness(sample_types: list):
     """
-    A donor is considered Tier A complete if there are:
+    A donor is considered Tier B complete if there are:
        - 1 normal DNA
        - 1 tumour DNA
-       - 1 tumour RNA
     """
-    normal_dna_count = sample_types.count('Normal~Total DNA')
-    tumour_dna_count = sample_types.count('Tumour~Total DNA')
+    dna_values = ["Total DNA", "Amplified DNA", "ctDNA", "Other DNA enrichments", "Whole cell - DNA"]
+    normal_dna_count = 0
+    tumour_dna_count = 0
+    for sample_type in sample_types:
+        split_type = sample_type.split("~")
+        if split_type[0] == "Normal" and split_type[1] in dna_values:
+            normal_dna_count += 1
+        elif split_type[0] == "Tumour" and split_type[1] in dna_values:
+            tumour_dna_count += 1
     if normal_dna_count >= 1 and tumour_dna_count >= 1:
         return True
     else:
@@ -420,8 +440,9 @@ def get_specimens_completeness():
 
 def get_samples_completeness():
     samp_comp_df = pd.read_csv("sql_outputs/fullsome_sample_completeness.csv", dtype="str")
-    samp_count_df = (pd.read_csv("sql_outputs/fullsome_sample_count.csv").rename(columns={'count': 'total_count'}).
-                     groupby(['program_id_id', 'submitter_donor_id']).sum())
+    samp_count_df = pd.read_csv("sql_outputs/fullsome_sample_count.csv")
+    samp_count_df['total_count'] = 1
+    samp_count_df = samp_count_df.groupby(['program_id_id', 'submitter_donor_id'], as_index=False).sum()
     samp_comp_df['complete_samples_count'] = 1
     samp_comp_df = samp_comp_df.drop(['submitter_sample_id'], axis=1).groupby(['program_id_id', 'submitter_donor_id']).sum()
     samples_complete = pd.merge(samp_count_df, samp_comp_df, on=['program_id_id', 'submitter_donor_id'], how="left")
@@ -448,10 +469,16 @@ def main():
     clean_url = args.url.rstrip('/')
     file_prefix = datetime.datetime.now().strftime("%Y-%m-%d_%H%M") + '-' + args.node + '-'
     # get data for clinical postgresdb
-    print("Fetching data from clinical postgres database")
-    subprocess.run(["mkdir", "sql_outputs"])
-    for script in glob.glob('*.sql'):
-        _run_sql_script(script)
+    if not args.no_sql:
+        print("Fetching data from clinical postgres database")
+        subprocess.run(["mkdir", "sql_outputs"])
+        for script in glob.glob('*.sql'):
+            _run_sql_script(script)
+    else:
+        print("Not fetching new sql data")
+    if not Path("sql_outputs").is_dir():
+        print("sql_outputs dir not found, please run script again and ensure --no-sql not specified.")
+        sys.exit()
     # Get minimal clinical Completeness stats
     (program_minimal_tier_a_complete_df, program_minimal_tier_b_complete_df,
      complete_donor_samples_df) = get_minimal_completeness()
@@ -508,11 +535,11 @@ def main():
             "~" + samples_comp_df['sample_type'].astype(str))
     # Get genomic completeness status
     if len(sample_list) > 0:
-        genomic_stats = get_genomic_data(args.token, args.url, sample_list)
+        genomic_stats = get_genomic_data(args.token, clean_url, sample_list)
         if len(genomic_stats) > 0:
             genomic_stats.to_csv(f"{file_prefix}per_sample_genomic_stats.csv", index=False)
-            genomic_stats = (pd.merge(genomic_stats, samples_count_df.rename(columns={"program_id_id": "program_id"}), on=["program_id", "submitter_sample_id"], how="left").
-                             merge(samples_comp_df.rename(columns={"program_id_id": "program_id"}), on=["program_id", "submitter_donor_id", "submitter_sample_id"], how="left"))
+            genomic_stats = (pd.merge(genomic_stats, samples_count_df.rename(columns={"program_id_id": "program_id"}),
+                                      on=["program_id", "submitter_sample_id"], how="left"))
             donor_genomic_status = {
                 "submitter_donor_id": [],
                 "tier_a_genomic_files_complete": [],
@@ -579,11 +606,19 @@ def main():
                                  'tier_b_clinical_complete', 'tier_b_genomic_files_complete']]
     report_table = report_table.rename(columns={'fully_fullsome_complete': 'fullsome_cg_complete'})
     report_table = report_table.fillna(0)
+    report_table.replace(True, 1, inplace=True)
+    report_table.replace(False, 0, inplace=True)
     report_table.to_csv(f"{file_prefix}per_program_completeness_report.csv", index=False)
     print(f"Summary Report saved to '{file_prefix}per_program_completeness_report.csv'")
-    print("Removing sql outputs...")
-    subprocess.run(["rm", "-r", "sql_outputs"])
-    print("All done!")
+    if args.dont_delete_sql_outputs:
+        print("SQL outputs saved in sql_outputs/")
+        print("All done!")
+        sys.exit()
+    else:
+        print("Removing sql outputs...")
+        subprocess.run(["rm", "-r", "sql_outputs"])
+        print("All done!")
+        sys.exit()
 
 
 if __name__ == "__main__":
