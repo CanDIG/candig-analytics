@@ -19,8 +19,8 @@ def parse_args():
     parser.add_argument('--token', type=str, required=True, help="site admin token for the candig deployment you are retrieving data from.")
     parser.add_argument('--url', type=str, required=True, help="URL of the candig deployment you are retrieving data from")
     parser.add_argument('--node', type=str, required=True, help="name of the node running the report, e.g. UHN")
-    parser.add_argument('--no-sql', type="store_true", required=False, help="don't run the sql reports again, mainly used for debugging")
-    parser.add_argument('--dont-delete-sql-outputs', type="store_true", required=False, help="don't delete the sql outputs, mainly used for debugging")
+    parser.add_argument('--no-sql', action="store_true", required=False, help="don't run the sql reports again, mainly used for debugging")
+    parser.add_argument('--dont-delete-sql-outputs', action="store_true", required=False, help="don't delete the sql outputs, mainly used for debugging")
     args = parser.parse_args()
     return args
 
@@ -607,9 +607,15 @@ def main():
     report_table = report_table.fillna(0)
     report_table.to_csv(f"{file_prefix}per_program_completeness_report.csv", index=False)
     print(f"Summary Report saved to '{file_prefix}per_program_completeness_report.csv'")
-    print("Removing sql outputs...")
-    subprocess.run(["rm", "-r", "sql_outputs"])
-    print("All done!")
+    if args.dont_delete_sql_outputs:
+        print("SQL outputs saved in sql_outputs/")
+        print("All done!")
+        sys.exit()
+    else:
+        print("Removing sql outputs...")
+        subprocess.run(["rm", "-r", "sql_outputs"])
+        print("All done!")
+        sys.exit()
 
 
 if __name__ == "__main__":
