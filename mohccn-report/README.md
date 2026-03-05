@@ -52,10 +52,30 @@ You will need to provide:
 - VCF that contains variants from the DNA normal and DNA tumour samples
 
 **Fullsome complete:**
-- all required and contionally required fields with valid values with at least 1 DNA normal, 1 DNA tumour, 1 RNA tumour sample registration
+- all required and conditionally required fields with valid values with at least 1 DNA normal, 1 DNA tumour, 1 RNA tumour sample registration
 - At least one VCF that contains samples from the DNA normal and DNA tumour
 - An Expression matrix linked to the RNA tumour sample
 
+**DNA sample:**
+A sample is counted as `DNA` if the `sample_registration.sample_type` is one of
+- Total DNA
+- Amplified DNA
+- ctDNA
+- Other DNA enrichments
+- Whole cell - DNA
+
+**RNA sample:**
+A sample is counted as `RNA` if the `sample_registration.sample_type` is one of
+- Total RNA
+- Other RNA fractions
+- polyA+ RNA
+- rRNA-depleted RNA
+- Whole cell - RNA
+
+**Tumour/Normal**
+A sample is counted as `Tumour` if `sample_registration.tumour_normal_designation` == `Tumour`.
+
+A sample is counted as `Normal` if `sample_registration.tumour_normal_designation` == `Normal`.
 
 ## Outputs
 
