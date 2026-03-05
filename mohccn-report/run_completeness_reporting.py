@@ -468,7 +468,7 @@ def main():
     clean_url = args.url.rstrip('/')
     file_prefix = datetime.datetime.now().strftime("%Y-%m-%d_%H%M") + '-' + args.node + '-'
     # get data for clinical postgresdb
-    if args.no_sql:
+    if not args.no_sql:
         print("Fetching data from clinical postgres database")
         subprocess.run(["mkdir", "sql_outputs"])
         for script in glob.glob('*.sql'):
