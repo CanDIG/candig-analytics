@@ -440,8 +440,9 @@ def get_specimens_completeness():
 
 def get_samples_completeness():
     samp_comp_df = pd.read_csv("sql_outputs/fullsome_sample_completeness.csv", dtype="str")
-    samp_count_df = (pd.read_csv("sql_outputs/fullsome_sample_count.csv").rename(columns={'count': 'total_count'}).
-                     groupby(['program_id_id', 'submitter_donor_id']).sum())
+    samp_count_df = pd.read_csv("sql_outputs/fullsome_sample_count.csv")
+    samp_count_df['total_count'] = 1
+    samp_count_df = samp_count_df.groupby(['program_id_id', 'submitter_donor_id'], as_index=False).sum()
     samp_comp_df['complete_samples_count'] = 1
     samp_comp_df = samp_comp_df.drop(['submitter_sample_id'], axis=1).groupby(['program_id_id', 'submitter_donor_id']).sum()
     samples_complete = pd.merge(samp_count_df, samp_comp_df, on=['program_id_id', 'submitter_donor_id'], how="left")
@@ -537,8 +538,8 @@ def main():
         genomic_stats = get_genomic_data(args.token, clean_url, sample_list)
         if len(genomic_stats) > 0:
             genomic_stats.to_csv(f"{file_prefix}per_sample_genomic_stats.csv", index=False)
-            genomic_stats = (pd.merge(genomic_stats, samples_count_df.rename(columns={"program_id_id": "program_id"}), on=["program_id", "submitter_sample_id"], how="left").
-                             merge(samples_comp_df.rename(columns={"program_id_id": "program_id"}), on=["program_id", "submitter_donor_id", "submitter_sample_id"], how="left"))
+            genomic_stats = (pd.merge(genomic_stats, samples_count_df.rename(columns={"program_id_id": "program_id"}),
+                                      on=["program_id", "submitter_sample_id"], how="left"))
             donor_genomic_status = {
                 "submitter_donor_id": [],
                 "tier_a_genomic_files_complete": [],
@@ -605,6 +606,8 @@ def main():
                                  'tier_b_clinical_complete', 'tier_b_genomic_files_complete']]
     report_table = report_table.rename(columns={'fully_fullsome_complete': 'fullsome_cg_complete'})
     report_table = report_table.fillna(0)
+    report_table.replace(True, 1, inplace=True)
+    report_table.replace(False, 0, inplace=True)
     report_table.to_csv(f"{file_prefix}per_program_completeness_report.csv", index=False)
     print(f"Summary Report saved to '{file_prefix}per_program_completeness_report.csv'")
     if args.dont_delete_sql_outputs:
