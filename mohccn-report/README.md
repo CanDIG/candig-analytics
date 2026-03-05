@@ -42,21 +42,25 @@ You will need to provide:
 ## MOHCCN Completeness Criteria
 
 **Tier A complete cases:**
+
 - Minimum clinical completeness with at least 1 DNA normal, 1 DNA tumour, 1 RNA tumour sample registration
 - At least one VCF that contains samples from the DNA normal and DNA tumour
 - An Expression matrix linked to the RNA tumour sample
 
 **Tier B complete cases:**
+
 - Won't contain any cases that already meet the Tier A criteria above
 - Minimum clinical completeness with 1 DNA normal and 1 DNA tumour sample
 - VCF that contains variants from the DNA normal and DNA tumour samples
 
 **Fullsome complete:**
+
 - all required and conditionally required fields with valid values with at least 1 DNA normal, 1 DNA tumour, 1 RNA tumour sample registration
 - At least one VCF that contains samples from the DNA normal and DNA tumour
 - An Expression matrix linked to the RNA tumour sample
 
 **DNA sample:**
+
 A sample is counted as `DNA` if the `sample_registration.sample_type` is one of
 - Total DNA
 - Amplified DNA
@@ -65,6 +69,7 @@ A sample is counted as `DNA` if the `sample_registration.sample_type` is one of
 - Whole cell - DNA
 
 **RNA sample:**
+
 A sample is counted as `RNA` if the `sample_registration.sample_type` is one of
 - Total RNA
 - Other RNA fractions
@@ -73,6 +78,7 @@ A sample is counted as `RNA` if the `sample_registration.sample_type` is one of
 - Whole cell - RNA
 
 **Tumour/Normal**
+
 A sample is counted as `Tumour` if `sample_registration.tumour_normal_designation` == `Tumour`.
 
 A sample is counted as `Normal` if `sample_registration.tumour_normal_designation` == `Normal`.
