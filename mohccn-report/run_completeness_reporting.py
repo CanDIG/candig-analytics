@@ -51,7 +51,7 @@ def parse_args():
 
 
 def get_genomic_data(token, url, sample_list):
-    print("Fetching genomic object data from CanDIG")
+    print(f"Fetching genomic object data from CanDIG instance at {url}")
     genomic_completeness_dict = {
         "program_id": [],
         "submitter_sample_id": [],
