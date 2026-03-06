@@ -5,9 +5,15 @@ COPY (SELECT mohpackets_donor.program_id_id, mohpackets_donor.submitter_donor_id
 mohpackets_sampleregistration.submitter_sample_id, tumour_normal_designation,
 sample_type, specimen_type
 FROM mohpackets_donor
-LEFT JOIN mohpackets_primarydiagnosis ON mohpackets_donor.submitter_donor_id = mohpackets_primarydiagnosis.submitter_donor_id
-LEFT JOIN mohpackets_specimen ON mohpackets_primarydiagnosis.submitter_primary_diagnosis_id = mohpackets_specimen.submitter_primary_diagnosis_id
-LEFT JOIN mohpackets_sampleregistration ON mohpackets_specimen.submitter_specimen_id = mohpackets_sampleregistration.submitter_specimen_id
+LEFT JOIN mohpackets_primarydiagnosis
+ON mohpackets_donor.submitter_donor_id = mohpackets_primarydiagnosis.submitter_donor_id
+AND mohpackets_donor.program_id_id = mohpackets_primarydiagnosis.program_id_id
+LEFT JOIN mohpackets_specimen
+ON mohpackets_primarydiagnosis.submitter_primary_diagnosis_id = mohpackets_specimen.submitter_primary_diagnosis_id AND
+mohpackets_primarydiagnosis.program_id_id = mohpackets_specimen.program_id_id
+LEFT JOIN mohpackets_sampleregistration
+ON mohpackets_specimen.submitter_specimen_id = mohpackets_sampleregistration.submitter_specimen_id
+mohpackets_specimen.program_id_id = mohpackets_sampleregistration.program_id_id
 WHERE
   gender IS NULL
   OR sex_at_birth IS NULL
