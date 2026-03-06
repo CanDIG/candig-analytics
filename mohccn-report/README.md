@@ -108,6 +108,8 @@ A sample is counted as `Normal` if `sample_registration.tumour_normal_designatio
 
 ## Outputs
 
+All outputs are prefixed with a date-time stamp and the value provided to the `--node` argument.
+
 ### `per_program_completeness_report.csv`
 
 Contains counts per program of completeness based on tier a, tier b and fullsome completeness

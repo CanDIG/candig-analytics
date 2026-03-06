@@ -189,7 +189,7 @@ def check_genomic_tier_b_completeness(genomic_stats):
         return False
 
 
-def _run_sql_script(script_name):
+def _run_sql_script(script_name, prefix):
     """copy script to the docker container, run script, copy outputs, delete outputs"""
     stem_name = script_name.split(".sql")[0]
     subprocess.run(["docker", "cp", script_name, f"candigv2_postgres-db_1:/tmp/{script_name}"])
@@ -204,7 +204,7 @@ def _run_sql_script(script_name):
     subprocess.run(["docker", "exec", "-i", "candigv2_postgres-db_1", "rm", f"/tmp/{stem_name}_completeness.csv"])
     subprocess.run(["docker", "exec", "-i", "candigv2_postgres-db_1", "rm", f"/tmp/{script_name}"])
     if stem_name == "failed_minimal":
-        subprocess.run(["cp", "sql_outputs/failed_minimal_completeness.csv", "."])
+        subprocess.run(["cp", "sql_outputs/failed_minimal_completeness.csv", f"./{prefix}failed_minimal_completeness.csv"])
 
 
 def bool_str_map(bool_to_map: bool):
@@ -475,7 +475,7 @@ def main():
         print("Fetching data from clinical postgres database")
         subprocess.run(["mkdir", "sql_outputs"])
         for script in glob.glob('*.sql'):
-            _run_sql_script(script)
+            _run_sql_script(script, file_prefix)
     else:
         print("Not fetching new sql data")
     if not Path("sql_outputs").is_dir():
