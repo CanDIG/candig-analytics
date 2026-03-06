@@ -189,7 +189,7 @@ def check_genomic_tier_b_completeness(genomic_stats):
         return False
 
 
-def _run_sql_script(script_name):
+def _run_sql_script(script_name, prefix):
     """copy script to the docker container, run script, copy outputs, delete outputs"""
     stem_name = script_name.split(".sql")[0]
     subprocess.run(["docker", "cp", script_name, f"candigv2_postgres-db_1:/tmp/{script_name}"])
@@ -203,6 +203,8 @@ def _run_sql_script(script_name):
         ["docker", "cp", f"candigv2_postgres-db_1:/tmp/{stem_name}_completeness.csv", f"sql_outputs/{stem_name}_completeness.csv"])
     subprocess.run(["docker", "exec", "-i", "candigv2_postgres-db_1", "rm", f"/tmp/{stem_name}_completeness.csv"])
     subprocess.run(["docker", "exec", "-i", "candigv2_postgres-db_1", "rm", f"/tmp/{script_name}"])
+    if stem_name == "failed_minimal":
+        subprocess.run(["cp", "sql_outputs/failed_minimal_completeness.csv", f"./{prefix}failed_minimal_completeness.csv"])
 
 
 def bool_str_map(bool_to_map: bool):
@@ -473,7 +475,7 @@ def main():
         print("Fetching data from clinical postgres database")
         subprocess.run(["mkdir", "sql_outputs"])
         for script in glob.glob('*.sql'):
-            _run_sql_script(script)
+            _run_sql_script(script, file_prefix)
     else:
         print("Not fetching new sql data")
     if not Path("sql_outputs").is_dir():
@@ -482,6 +484,15 @@ def main():
     # Get minimal clinical Completeness stats
     (program_minimal_tier_a_complete_df, program_minimal_tier_b_complete_df,
      complete_donor_samples_df) = get_minimal_completeness()
+    failed_minimal_summary = pd.read_csv("failed_minimal_completeness.csv")
+    failed_summary_bools = failed_minimal_summary[
+        ['gender', 'sex_at_birth', 'date_of_birth', 'date_resolution', 'date_of_diagnosis',
+         'cancer_type_code', 'primary_site', 'basis_of_diagnosis', 'cancer_type_code',
+         'primary_site', 'basis_of_diagnosis', 'specimen_collection_date',
+         'specimen_anatomic_location', 'tumour_normal_designation', 'sample_type',
+         'specimen_type']].isnull()
+    failed_minimal_program_summary = pd.concat([failed_minimal_summary[['program_id_id']], failed_summary_bools], axis=1).groupby('program_id_id', as_index=False).sum()
+    failed_minimal_program_summary.to_csv(f"{file_prefix}per_program_failed_minimal_completeness.csv", index=False)
     complete_donor_samples_df.to_csv(f"{file_prefix}complete_donor_samples.csv", index=False)
     if len(complete_donor_samples_df) == 0:
         print("No minimal complete donors found in the instance")

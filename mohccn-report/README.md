@@ -108,6 +108,8 @@ A sample is counted as `Normal` if `sample_registration.tumour_normal_designatio
 
 ## Outputs
 
+All outputs are prefixed with a date-time stamp and the value provided to the `--node` argument.
+
 ### `per_program_completeness_report.csv`
 
 Contains counts per program of completeness based on tier a, tier b and fullsome completeness
@@ -124,6 +126,36 @@ Columns:
 * `tier_a_genomic_complete` - count of donors that meet tier a genomic completeness
 * `tier_b_clinical_complete` - count of donors that meet tier b clinical completeness
 * `tier_b_genomic_complete` - count of donors that meet tier b genomic completeness
+
+## `per_program_failed_minimal_completeness.csv`
+
+Contains a count of **samples** per program with a null value for each of the minimal clinical completeness criteria.
+
+Columns:
+* `program_id_id`
+* `submitter_donor_id`
+* `gender`
+* `sex_at_birth`
+* `date_of_birth`
+* `date_resolution`
+* `date_of_diagnosis`
+* `cancer_type_code`
+* `primary_site`
+* `basis_of_diagnosis`
+* `specimen_collection_date`
+* `specimen_anatomic_location`
+* `specimen_tissue_source`
+* `submitter_sample_id`
+* `tumour_normal_designation`
+* `sample_type`
+* `specimen_type`
+
+> [!NOTE]
+> Failed counts count the number of SAMPLES not DONORS, we generally expect a DONOR to have 2-3 samples. Since they are grouped in this way some of the metadata is repeated, e.g. the status of `gender` would be the same for all samples from the same donor
+
+## `failed_minimal_completeness.csv`
+
+Contains minimal completeness metadata for samples that have a null value in at least one of the minimal clinical completeness criteria (see list above)
 
 ### `per_donor_full_completeness.csv`
 
