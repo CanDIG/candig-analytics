@@ -125,6 +125,33 @@ Columns:
 * `tier_b_clinical_complete` - count of donors that meet tier b clinical completeness
 * `tier_b_genomic_complete` - count of donors that meet tier b genomic completeness
 
+## `per_program_failed_minimal_completeness.csv`
+
+Contains a count of samples per program with a null value for each of the minimal clinical completeness criteria.
+
+Columns:
+* `program_id_id`
+* `submitter_donor_id`
+* `gender`
+* `sex_at_birth`
+* `date_of_birth`
+* `date_resolution`
+* `date_of_diagnosis`
+* `cancer_type_code`
+* `primary_site`
+* `basis_of_diagnosis`
+* `specimen_collection_date`
+* `specimen_anatomic_location`
+* `specimen_tissue_source`
+* `submitter_sample_id`
+* `tumour_normal_designation`
+* `sample_type`
+* `specimen_type`
+
+## `failed_minimal_completeness.csv`
+
+Contains minimal completeness metadata for samples that have a null value in at least one of the minimal clinical completeness criteria (see list above)
+
 ### `per_donor_full_completeness.csv`
 
 Contains summary completeness including genomic and clinical data per donor

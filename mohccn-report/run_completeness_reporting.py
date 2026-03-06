@@ -484,6 +484,15 @@ def main():
     # Get minimal clinical Completeness stats
     (program_minimal_tier_a_complete_df, program_minimal_tier_b_complete_df,
      complete_donor_samples_df) = get_minimal_completeness()
+    failed_minimal_summary = pd.read_csv("failed_minimal_completeness.csv")
+    failed_summary_bools = failed_minimal_summary[
+        ['gender', 'sex_at_birth', 'date_of_birth', 'date_resolution', 'date_of_diagnosis',
+         'cancer_type_code', 'primary_site', 'basis_of_diagnosis', 'cancer_type_code',
+         'primary_site', 'basis_of_diagnosis', 'specimen_collection_date',
+         'specimen_anatomic_location', 'tumour_normal_designation', 'sample_type',
+         'specimen_type']].isnull()
+    failed_minimal_program_summary = pd.concat([failed_minimal_summary[['program_id_id']], failed_summary_bools], axis=1).groupby('program_id_id', as_index=False).sum()
+    failed_minimal_program_summary.to_csv(f"{file_prefix}per_program_failed_minimal_completeness.csv", index=False)
     complete_donor_samples_df.to_csv(f"{file_prefix}complete_donor_samples.csv", index=False)
     if len(complete_donor_samples_df) == 0:
         print("No minimal complete donors found in the instance")
