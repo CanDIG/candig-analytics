@@ -203,6 +203,8 @@ def _run_sql_script(script_name):
         ["docker", "cp", f"candigv2_postgres-db_1:/tmp/{stem_name}_completeness.csv", f"sql_outputs/{stem_name}_completeness.csv"])
     subprocess.run(["docker", "exec", "-i", "candigv2_postgres-db_1", "rm", f"/tmp/{stem_name}_completeness.csv"])
     subprocess.run(["docker", "exec", "-i", "candigv2_postgres-db_1", "rm", f"/tmp/{script_name}"])
+    if stem_name == "failed_minimal":
+        subprocess.run(["cp", "sql_outputs/failed_minimal_completeness.csv", "."])
 
 
 def bool_str_map(bool_to_map: bool):
