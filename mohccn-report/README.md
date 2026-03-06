@@ -129,7 +129,7 @@ Columns:
 
 ## `per_program_failed_minimal_completeness.csv`
 
-Contains a count of samples per program with a null value for each of the minimal clinical completeness criteria.
+Contains a count of **samples** per program with a null value for each of the minimal clinical completeness criteria.
 
 Columns:
 * `program_id_id`
@@ -149,6 +149,9 @@ Columns:
 * `tumour_normal_designation`
 * `sample_type`
 * `specimen_type`
+
+> [!NOTE]
+> Failed counts count the number of SAMPLES not DONORS, we generally expect a DONOR to have 2-3 samples. Since they are grouped in this way some of the metadata is repeated, e.g. the status of `gender` would be the same for all samples from the same donor
 
 ## `failed_minimal_completeness.csv`
 
