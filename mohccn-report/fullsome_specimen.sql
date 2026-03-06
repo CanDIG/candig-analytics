@@ -5,7 +5,7 @@ tumour_normal_designation
 FROM mohpackets_specimen
 LEFT JOIN mohpackets_sampleregistration
 ON mohpackets_specimen.submitter_specimen_id = mohpackets_sampleregistration.submitter_specimen_id
-AND mohpackets_specimen.progam_id_id = mohpackets_sampleregistration.program_id_id
+AND mohpackets_specimen.program_id_id = mohpackets_sampleregistration.program_id_id
 WHERE mohpackets_specimen.program_id_id IS NOT NULL
   AND specimen_collection_date IS NOT NULL
   AND specimen_anatomic_location IS NOT NULL

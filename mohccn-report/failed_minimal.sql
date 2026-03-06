@@ -13,7 +13,7 @@ ON mohpackets_primarydiagnosis.submitter_primary_diagnosis_id = mohpackets_speci
 mohpackets_primarydiagnosis.program_id_id = mohpackets_specimen.program_id_id
 LEFT JOIN mohpackets_sampleregistration
 ON mohpackets_specimen.submitter_specimen_id = mohpackets_sampleregistration.submitter_specimen_id
-mohpackets_specimen.program_id_id = mohpackets_sampleregistration.program_id_id
+AND mohpackets_specimen.program_id_id = mohpackets_sampleregistration.program_id_id
 WHERE
   gender IS NULL
   OR sex_at_birth IS NULL
