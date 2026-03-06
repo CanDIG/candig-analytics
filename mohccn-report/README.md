@@ -21,7 +21,7 @@ pip install -r requirements.txt
 4. Run the `run_completeness_reporting.py` script
 ```bash
 python run_completeness_reporting.py --help
-usage: run_completeness_reporting.py [-h] [--psql-user PSQL_USER] --token TOKEN --url URL --node NODE
+usage: run_completeness_reporting.py [-h] [--psql-user PSQL_USER] --token TOKEN --url URL --node NODE [--no-sql] [--dont-delete-sql-outputs]
 
 options:
   -h, --help            show this help message and exit
@@ -30,6 +30,9 @@ options:
   --token TOKEN         site admin token for the candig deployment you are retrieving data from.
   --url URL             URL of the candig deployment you are retrieving data from
   --node NODE           name of the node running the report, e.g. UHN
+  --no-sql              don't run the sql reports again, mainly used for debugging
+  --dont-delete-sql-outputs
+                        don't delete the sql outputs, mainly used for debugging
 ```
 
 You will need to provide:
