@@ -485,7 +485,7 @@ def main():
     # Get minimal clinical Completeness stats
     (program_minimal_tier_a_complete_df, program_minimal_tier_b_complete_df,
      complete_donor_samples_df) = get_minimal_completeness()
-    failed_minimal_summary = pd.read_csv("failed_minimal_completeness.csv")
+    failed_minimal_summary = pd.read_csv(f"{file_prefix}failed_minimal_completeness.csv")
     failed_summary_bools = failed_minimal_summary[
         ['gender', 'sex_at_birth', 'date_of_birth', 'date_resolution', 'date_of_diagnosis',
          'cancer_type_code', 'primary_site', 'basis_of_diagnosis', 'cancer_type_code',
