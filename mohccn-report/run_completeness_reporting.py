@@ -50,6 +50,50 @@ def parse_args():
 #         sys.exit()
 
 
+def get_genomic_data_by_sql(sample_list):
+
+    print(f"Fetching genomic object data from CanDIG instance at {url}")
+    genomic_completeness_dict = {
+        "program_id": [],
+        "submitter_sample_id": [],
+        "expression_file_count": [],
+        "variant_sample_file_count": [],
+        "read_file_count": []
+    }
+    sql_statement="SELECT drs_object_1.name, drs_object_1.id, drs_object_1.program_id, drs_object_1.description, drs_object_2.id AS id_1, drs_object_2.description AS analysis_type, content_object.id AS id_2, content_object.drs_object_id, content_object.name AS analysis_name, content_object.contents_id, content_object.drs_uri, content_object.contents FROM content_object JOIN drs_object AS drs_object_1 ON content_object.drs_object_id = drs_object_1.id JOIN drs_object AS drs_object_2 ON content_object.contents_id = drs_object_2.id WHERE drs_object_1.description IN ('wgs', 'wts')"
+
+    headers = {"Authorization": f"Bearer {token}",
+               "Content-Type": "application/json; charset=utf-8"}
+    response = rq.post(f"{url}/drs/ga4gh/drs/v1/experiments", headers=headers,
+                       json={"submitter_sample_ids": sample_list})
+    if response.status_code == 200:
+        """every sample should have 2 genomes, 1 transcriptome"""
+        experiment_objects = response.json()
+        if experiment_objects and len(experiment_objects) > 0:
+            for obj in experiment_objects:
+                genomic_completeness_dict['program_id'].append(obj['program'])
+                genomic_completeness_dict['submitter_sample_id'].append(obj['experiment_id'])
+                genomic_completeness_dict['expression_file_count'].append(len(obj['expressions']))
+                genomic_completeness_dict['variant_sample_file_count'].append(len(obj['variants']))
+                genomic_completeness_dict['read_file_count'].append(len(obj['reads']))
+            genomic_completeness_df = pd.DataFrame(genomic_completeness_dict)
+            return genomic_completeness_df
+        else:
+            return pd.DataFrame(genomic_completeness_dict)
+    elif response.status_code == 401:
+        print(f"Response status code: {response.status_code}")
+        print(f"Returned response:")
+        pprint.pprint(response.json())
+        print("Could not retrieve genomic data, try getting a new token and run the script again.")
+        sys.exit()
+    else:
+        print(f"Response status code: {response.status_code}")
+        print(f"Returned response:")
+        pprint.pprint(response.json())
+        print("WARN: Could not retrieve genomic data, continuing but if you have genomic data ingested, please reach out for help to debug this.")
+        return pd.DataFrame(genomic_completeness_dict)
+
+
 def get_genomic_data(token, url, sample_list):
     print(f"Fetching genomic object data from CanDIG instance at {url}")
     genomic_completeness_dict = {
@@ -189,12 +233,12 @@ def check_genomic_tier_b_completeness(genomic_stats):
         return False
 
 
-def _run_sql_script(script_name, prefix):
+def _run_sql_script(script_name, prefix, db_id):
     """copy script to the docker container, run script, copy outputs, delete outputs"""
     stem_name = script_name.split(".sql")[0]
     subprocess.run(["docker", "cp", script_name, f"candigv2_postgres-db_1:/tmp/{script_name}"])
     result = subprocess.run(
-        [f"docker exec -i candigv2_postgres-db_1 psql -U {PSQL_USER} -d clinical -f /tmp/{script_name}"],
+        [f"docker exec -i candigv2_postgres-db_1 psql -U {PSQL_USER} -d {db_id} -f /tmp/{script_name}"],
         shell=True, stdout=subprocess.PIPE)
     if stem_name not in ['minimal', 'failed_minimal']:
         subprocess.run(
@@ -475,8 +519,10 @@ def main():
     if not args.no_sql:
         print("Fetching data from clinical postgres database")
         subprocess.run(["mkdir", "sql_outputs"])
-        for script in glob.glob('*.sql'):
-            _run_sql_script(script, file_prefix)
+        for script in glob.glob('clinical/*.sql'):
+            _run_sql_script(script, file_prefix,'clinical')
+        for script in glob.glob('drs/*.sql'):
+            _run_sql_script(script, file_prefix,'drs')
     else:
         print("Not fetching new sql data")
     if not Path("sql_outputs").is_dir():
