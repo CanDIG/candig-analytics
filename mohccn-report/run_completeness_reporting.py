@@ -190,9 +190,11 @@ def check_genomic_tier_b_completeness(genomic_stats):
 
 def _run_drs_sql_script(script_name, prefix):
     """copy script to the docker container, run script, copy outputs, delete outputs"""
+    script_name = script_name.replace("drs/","")
     stem_name = script_name.split(".sql")[0]
+    
     print(f"stem name {stem_name}, script name {script_name}")
-    subprocess.run(["docker", "cp", script_name, f"candigv2_postgres-db_1:/tmp/{script_name}"])
+    subprocess.run(["docker", "cp", f"drs/{script_name}", f"candigv2_postgres-db_1:/tmp/{script_name}"])
     print("foo")
     result = subprocess.run(
         [f"docker exec -i candigv2_postgres-db_1 psql -U {PSQL_USER} -d drs -f /tmp/{script_name}"],
