@@ -188,7 +188,18 @@ def check_genomic_tier_b_completeness(genomic_stats):
     else:
         return False
 
-
+def _run_drs_sql_script(script_name, prefix):
+    """copy script to the docker container, run script, copy outputs, delete outputs"""
+    stem_name = script_name.split(".sql")[0]
+    subprocess.run(["docker", "cp", script_name, f"candigv2_postgres-db_1:/tmp/{script_name}"])
+    result = subprocess.run(
+        [f"docker exec -i candigv2_postgres-db_1 psql -U {PSQL_USER} -d drs -f /tmp/{script_name}"],
+        shell=True, stdout=subprocess.PIPE)
+    subprocess.run(
+        ["docker", "cp", f"candigv2_postgres-db_1:/tmp/{stem_name}_completeness.csv", f"sql_outputs/{stem_name}_completeness.csv"])
+    subprocess.run(["docker", "exec", "-i", "candigv2_postgres-db_1", "rm", f"/tmp/{stem_name}_completeness.csv"])
+    subprocess.run(["docker", "exec", "-i", "candigv2_postgres-db_1", "rm", f"/tmp/{script_name}"])
+ 
 def _run_sql_script(script_name, prefix):
     """copy script to the docker container, run script, copy outputs, delete outputs"""
     stem_name = script_name.split(".sql")[0]
@@ -477,6 +488,7 @@ def main():
         subprocess.run(["mkdir", "sql_outputs"])
         for script in glob.glob('*.sql'):
             _run_sql_script(script, file_prefix)
+        _run_drs_sql_script("drs/genomic.sql",file_prefix)
     else:
         print("Not fetching new sql data")
     if not Path("sql_outputs").is_dir():
