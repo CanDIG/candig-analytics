@@ -237,7 +237,8 @@ def _run_sql_script(script_name, prefix, db_id):
     """copy script to the docker container, run script, copy outputs, delete outputs"""
 
     # put all fo the sql outputs into a single sql_output dir, not seperate clinical and drs
-    stem_name = script_name.split(".sql")[0].replace(f"{db_id}/","")
+    script_name = script_name.replace(f"{db_id}/","")
+    stem_name = script_name.split(".sql")[0]
     subprocess.run(["docker", "cp", script_name, f"candigv2_postgres-db_1:/tmp/{script_name}"])
     result = subprocess.run(
         [f"docker exec -i candigv2_postgres-db_1 psql -U {PSQL_USER} -d {db_id} -f /tmp/{script_name}"],
