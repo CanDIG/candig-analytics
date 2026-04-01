@@ -235,7 +235,9 @@ def check_genomic_tier_b_completeness(genomic_stats):
 
 def _run_sql_script(script_name, prefix, db_id):
     """copy script to the docker container, run script, copy outputs, delete outputs"""
-    stem_name = script_name.split(".sql")[0]
+
+    # put all fo the sql outputs into a single sql_output dir, not seperate clinical and drs
+    stem_name = script_name.split(".sql")[0].replace(f"{db_id}/","")
     subprocess.run(["docker", "cp", script_name, f"candigv2_postgres-db_1:/tmp/{script_name}"])
     result = subprocess.run(
         [f"docker exec -i candigv2_postgres-db_1 psql -U {PSQL_USER} -d {db_id} -f /tmp/{script_name}"],
@@ -243,11 +245,11 @@ def _run_sql_script(script_name, prefix, db_id):
     if stem_name not in ['minimal', 'failed_minimal']:
         subprocess.run(
             ["docker", "cp", f"candigv2_postgres-db_1:/tmp/{stem_name}_count.csv", f"sql_outputs/{stem_name}_count.csv"])
-        subprocess.run(["docker", "exec", "-i", "candigv2_postgres-db_1", "rm", f"/tmp/{stem_name}_count.csv"])
+        #subprocess.run(["docker", "exec", "-i", "candigv2_postgres-db_1", "rm", f"/tmp/{stem_name}_count.csv"])
     subprocess.run(
         ["docker", "cp", f"candigv2_postgres-db_1:/tmp/{stem_name}_completeness.csv", f"sql_outputs/{stem_name}_completeness.csv"])
-    subprocess.run(["docker", "exec", "-i", "candigv2_postgres-db_1", "rm", f"/tmp/{stem_name}_completeness.csv"])
-    subprocess.run(["docker", "exec", "-i", "candigv2_postgres-db_1", "rm", f"/tmp/{script_name}"])
+    #subprocess.run(["docker", "exec", "-i", "candigv2_postgres-db_1", "rm", f"/tmp/{stem_name}_completeness.csv"])
+    #subprocess.run(["docker", "exec", "-i", "candigv2_postgres-db_1", "rm", f"/tmp/{script_name}"])
     if stem_name == "failed_minimal":
         subprocess.run(["cp", "sql_outputs/failed_minimal_completeness.csv", f"./{prefix}failed_minimal_completeness.csv"])
 
