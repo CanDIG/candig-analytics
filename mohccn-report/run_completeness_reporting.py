@@ -569,7 +569,8 @@ def main():
         if len(genomic_stats) > 0:
             genomic_stats.to_csv(f"{file_prefix}per_sample_genomic_stats.csv", index=False)
             genomic_stats = (pd.merge(genomic_stats, samples_count_df.rename(columns={"program_id_id": "program_id"}),
-                                      on=["program_id", "submitter_sample_id"], how="left"))
+                                      on=["program_id", "submitter_sample_id"], how="outer"))
+            genomic_stats.to_csv(f"{file_prefix}per_sample_genomic_stats2.csv", index=False)
             donor_genomic_status = {
                 "submitter_donor_id": [],
                 "tier_a_genomic_files_complete": [],
@@ -590,6 +591,7 @@ def main():
                         donor_tier_b_complete = check_genomic_tier_b_completeness(donor_stats)
                         donor_genomic_status['tier_b_genomic_files_complete'].append(donor_tier_b_complete)
             genomic_stats_per_donor = genomic_stats.groupby(['program_id', 'submitter_donor_id'], as_index=False).sum()
+            genomic_stats_per_donor.to_csv(f"{file_prefix}per_donor_genomic_stats.csv", index=False)
             full_genomic_stats = pd.merge(genomic_stats_per_donor, pd.DataFrame(donor_genomic_status),
                                           on='submitter_donor_id').loc[:, ['program_id', 'submitter_donor_id',
                                                                            'expression_file_count',
