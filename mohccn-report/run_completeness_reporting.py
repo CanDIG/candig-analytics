@@ -492,7 +492,7 @@ def main():
             _run_sql_script(script, file_prefix)
     else:
         print("Not fetching new sql data")
-        subprocess.run(["cp", "sql_outputs/failed_minimal_completeness.csv", f"./{prefix}failed_minimal_completeness.csv"])
+        subprocess.run(["cp", "sql_outputs/failed_minimal_completeness.csv", f"./{file_prefix}failed_minimal_completeness.csv"])
     if not Path("sql_outputs").is_dir():
         print("sql_outputs dir not found, please run script again and ensure --no-sql not specified.")
         sys.exit()
