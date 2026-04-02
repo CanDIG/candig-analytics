@@ -50,8 +50,8 @@ def parse_args():
 #         sys.exit()
 
 
-def get_genomic_data(token, url, sample_list):
-    print(f"Fetching genomic object data from CanDIG instance at {url}")
+def get_genomic_data(token, url, no_sql, sample_list):
+    experiment_objects = {}
     genomic_completeness_dict = {
         "program_id": [],
         "submitter_sample_id": [],
@@ -59,36 +59,48 @@ def get_genomic_data(token, url, sample_list):
         "variant_sample_file_count": [],
         "read_file_count": []
     }
-    headers = {"Authorization": f"Bearer {token}",
-               "Content-Type": "application/json; charset=utf-8"}
-    response = rq.post(f"{url}/drs/ga4gh/drs/v1/experiments", headers=headers,
-                       json={"submitter_sample_ids": sample_list})
-    if response.status_code == 200:
-        """every sample should have 2 genomes, 1 transcriptome"""
-        experiment_objects = response.json()
-        if experiment_objects and len(experiment_objects) > 0:
-            for obj in experiment_objects:
-                genomic_completeness_dict['program_id'].append(obj['program'])
-                genomic_completeness_dict['submitter_sample_id'].append(obj['experiment_id'])
-                genomic_completeness_dict['expression_file_count'].append(len(obj['expressions']))
-                genomic_completeness_dict['variant_sample_file_count'].append(len(obj['variants']))
-                genomic_completeness_dict['read_file_count'].append(len(obj['reads']))
-            genomic_completeness_df = pd.DataFrame(genomic_completeness_dict)
-            return genomic_completeness_df
-        else:
-            return pd.DataFrame(genomic_completeness_dict)
-    elif response.status_code == 401:
-        print(f"Response status code: {response.status_code}")
-        print(f"Returned response:")
-        pprint.pprint(response.json())
-        print("Could not retrieve genomic data, try getting a new token and run the script again.")
-        sys.exit()
+    if no_sql:
+        print("Reading genomic data from sql_outputs/experiments.json")
+        with open("experiments.json", "r") as f:
+            experiment_objects = json.load(f)
     else:
-        print(f"Response status code: {response.status_code}")
-        print(f"Returned response:")
-        pprint.pprint(response.json())
-        print("WARN: Could not retrieve genomic data, continuing but if you have genomic data ingested, please reach out for help to debug this.")
+        print(f"Fetching genomic object data from CanDIG instance at {url}")
+        headers = {"Authorization": f"Bearer {token}",
+                "Content-Type": "application/json; charset=utf-8"}
+        response = rq.post(f"{url}/drs/ga4gh/drs/v1/experiments", headers=headers,
+                        json={"submitter_sample_ids": sample_list})
+        if response.status_code == 200:
+            """every sample should have 2 genomes, 1 transcriptome"""
+            experiment_objects = response.json()
+            with open("sql_outputs/experiments.json", "w") as f:
+                    print("writing DRS json result to sql_outputs/experiments.json")
+                    json.dump(experiment_objects, f)
+        elif response.status_code == 401:
+                print(f"Response status code: {response.status_code}")
+                print(f"Returned response:")
+                pprint.pprint(response.json())
+                print("Could not retrieve genomic data, try getting a new token and run the script again.")
+                sys.exit()
+        else:
+            print(f"Response status code: {response.status_code}")
+            print(f"Returned response:")
+            pprint.pprint(response.json())
+            print("WARN: Could not retrieve genomic data, continuing but if you have genomic data ingested, please reach out for help to debug this.")
+            return pd.DataFrame(genomic_completeness_dict)
+
+    # now process the experiments object, whether from file or API call
+    if experiment_objects and len(experiment_objects) > 0:
+        for obj in experiment_objects:
+            genomic_completeness_dict['program_id'].append(obj['program'])
+            genomic_completeness_dict['submitter_sample_id'].append(obj['experiment_id'])
+            genomic_completeness_dict['expression_file_count'].append(len(obj['expressions']))
+            genomic_completeness_dict['variant_sample_file_count'].append(len(obj['variants']))
+            genomic_completeness_dict['read_file_count'].append(len(obj['reads']))
+        genomic_completeness_df = pd.DataFrame(genomic_completeness_dict)
+        return genomic_completeness_df
+    else:
         return pd.DataFrame(genomic_completeness_dict)
+
 
 
 def check_sample_tier_a_completeness(sample_types: list):
@@ -547,7 +559,7 @@ def main():
             "~" + samples_comp_df['sample_type'].astype(str))
     # Get genomic completeness status
     if len(sample_list) > 0:
-        genomic_stats = get_genomic_data(args.token, clean_url, sample_list)
+        genomic_stats = get_genomic_data(args.token, clean_url, args.no_sql, sample_list)
         if len(genomic_stats) > 0:
             genomic_stats.to_csv(f"{file_prefix}per_sample_genomic_stats.csv", index=False)
             genomic_stats = (pd.merge(genomic_stats, samples_count_df.rename(columns={"program_id_id": "program_id"}),
