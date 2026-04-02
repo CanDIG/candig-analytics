@@ -479,7 +479,6 @@ def get_donors_completeness():
     donors_complete['donor_obj_complete'] = donors_complete['total_count'] == donors_complete['vital_status_complete']
     return donors_complete.rename(columns={'total_count': 'donorobj_total_count'})
 
-
 def main():
     args = parse_args()
     clean_url = args.url.rstrip('/')
@@ -606,12 +605,16 @@ def main():
         full_genomic_stats.loc[:, ['expression_file_count', 'variant_sample_file_count', 'read_file_count']] = 0
         full_genomic_stats.loc[:, ['tier_a_genomic_files_complete','tier_b_genomic_files_complete']] = False
     full_genomic_stats.to_csv(f"{file_prefix}per_donor_full_genomic_stats.csv", index=False)
+    # tmp_print, remove later
+    joined_completeness.to_csv(f"{file_prefix}tmp_joined_completeness.csv", index=False)
     clinical_genomic_completeness = joined_completeness.loc[:,
                                     ['program_id_id', 'submitter_donor_id', 'donor_fullsome_complete']].rename(
         columns={"program_id_id": "program_id"}).merge(full_genomic_stats, on=['program_id', 'submitter_donor_id'],
                                                        how='left').merge(
         minimal_complete_donor_df.rename(columns={"program_id_id": "program_id"}),
         on=['program_id', 'submitter_donor_id'], how='left')
+    # tmp_print, remove later
+    clinical_genomic_completeness.to_csv(f"{file_prefix}tmp_clinical_genomic_completeness.csv", index=False)
     clinical_genomic_completeness['tier_a_full_complete'] = (clinical_genomic_completeness['tier_a_genomic_files_complete']
                                                              & clinical_genomic_completeness['tier_a_clinical_complete'])
     clinical_genomic_completeness['tier_b_full_complete'] = clinical_genomic_completeness[
