@@ -551,7 +551,7 @@ def main():
         if len(genomic_stats) > 0:
             genomic_stats.to_csv(f"{file_prefix}per_sample_genomic_stats.csv", index=False)
             genomic_stats = (pd.merge(genomic_stats, samples_count_df.rename(columns={"program_id_id": "program_id"}),
-                                      on=["program_id", "submitter_sample_id"], how="left"))
+                                      on=["program_id", "submitter_sample_id"], how="outer"))
             donor_genomic_status = {
                 "submitter_donor_id": [],
                 "tier_a_genomic_files_complete": [],
