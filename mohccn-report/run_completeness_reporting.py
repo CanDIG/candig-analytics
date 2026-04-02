@@ -479,6 +479,14 @@ def get_donors_completeness():
     donors_complete['donor_obj_complete'] = donors_complete['total_count'] == donors_complete['vital_status_complete']
     return donors_complete.rename(columns={'total_count': 'donorobj_total_count'})
 
+def contains_nulls(df):
+    """tests if the df contains any null values"""
+    nan_cols = [i for i in df.columns if df[i].isna().any()]
+    if len(nan_cols)>0:
+        print(f"Warning: dataframe contains nulls. Offending columns: {nan_cols}")
+        return True
+    return False
+
 def main():
     args = parse_args()
     clean_url = args.url.rstrip('/')
