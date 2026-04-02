@@ -62,7 +62,7 @@ def get_genomic_data(token, url, no_sql, sample_list):
     }
     if no_sql:
         print("Reading genomic data from sql_outputs/experiments.json")
-        with open("experiments.json", "r") as f:
+        with open("sql_outputs/experiments.json", "r") as f:
             experiment_objects = json.load(f)
     else:
         print(f"Fetching genomic object data from CanDIG instance at {url}")
