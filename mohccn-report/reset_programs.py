@@ -6,10 +6,9 @@ import requests
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--input', type=str, required=True, help="File with output of extract_drs.py")
-    parser.add_argument('--corrected', type=str, required=True, help="File with correct samples to programs")
+    parser.add_argument('--corrected', type=str, required=True, help="File with correct mapping of samples to programs (csv, columns should be Submitter Sample ID, correct Program ID)")
     parser.add_argument('--url', type=str, required=True, help="URL of the candig deployment you are retrieving data from")
     parser.add_argument('--token', type=str, required=True, help="site admin token for the candig deployment you are retrieving data from.")
-    parser.add_argument('--output', type=str, required=True, help="output file to write to")
 
     args = parser.parse_args()
     return args
@@ -25,7 +24,7 @@ def main():
         sample_lines.pop(0)
         sample_map = {}
         for line in sample_lines:
-            #Submitter Sample ID,Program ID,program_id
+            #Submitter Sample ID,Program ID
             parts = line.split(",")
             sample_map[parts[0]] = parts[1]
 
