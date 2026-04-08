@@ -10,17 +10,22 @@ import datetime
 import pprint
 from pathlib import Path
 
-PSQL_USER="admin"
+PSQL_USER = "admin"
 
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--psql-user', type=str, required=False, default="admin", help="Username of the postgres admin user, DEFAULT=admin")
-    parser.add_argument('--token', type=str, required=True, help="site admin token for the candig deployment you are retrieving data from.")
-    parser.add_argument('--url', type=str, required=True, help="URL of the candig deployment you are retrieving data from")
+    parser.add_argument('--psql-user', type=str, required=False, default="admin",
+                        help="Username of the postgres admin user, DEFAULT=admin")
+    parser.add_argument('--token', type=str, required=True,
+                        help="site admin token for the candig deployment you are retrieving data from.")
+    parser.add_argument('--url', type=str, required=True,
+                        help="URL of the candig deployment you are retrieving data from")
     parser.add_argument('--node', type=str, required=True, help="name of the node running the report, e.g. UHN")
-    parser.add_argument('--no-sql', action="store_true", required=False, help="don't run the sql reports again, mainly used for debugging")
-    parser.add_argument('--dont-delete-sql-outputs', action="store_true", required=False, help="don't delete the sql outputs, mainly used for debugging")
+    parser.add_argument('--no-sql', action="store_true", required=False,
+                        help="don't run the sql reports again, mainly used for debugging")
+    parser.add_argument('--dont-delete-sql-outputs', action="store_true", required=False,
+                        help="don't delete the sql outputs, mainly used for debugging")
     args = parser.parse_args()
     return args
 
@@ -87,7 +92,8 @@ def get_genomic_data(token, url, sample_list):
         print(f"Response status code: {response.status_code}")
         print(f"Returned response:")
         pprint.pprint(response.json())
-        print("WARN: Could not retrieve genomic data, continuing but if you have genomic data ingested, please reach out for help to debug this.")
+        print(
+            "WARN: Could not retrieve genomic data, continuing but if you have genomic data ingested, please reach out for help to debug this.")
         return pd.DataFrame(genomic_completeness_dict)
 
 
@@ -198,14 +204,17 @@ def _run_sql_script(script_name, prefix):
         shell=True, stdout=subprocess.PIPE)
     if stem_name not in ['minimal', 'failed_minimal']:
         subprocess.run(
-            ["docker", "cp", f"candigv2_postgres-db_1:/tmp/{stem_name}_count.csv", f"sql_outputs/{stem_name}_count.csv"])
+            ["docker", "cp", f"candigv2_postgres-db_1:/tmp/{stem_name}_count.csv",
+             f"sql_outputs/{stem_name}_count.csv"])
         subprocess.run(["docker", "exec", "-i", "candigv2_postgres-db_1", "rm", f"/tmp/{stem_name}_count.csv"])
     subprocess.run(
-        ["docker", "cp", f"candigv2_postgres-db_1:/tmp/{stem_name}_completeness.csv", f"sql_outputs/{stem_name}_completeness.csv"])
+        ["docker", "cp", f"candigv2_postgres-db_1:/tmp/{stem_name}_completeness.csv",
+         f"sql_outputs/{stem_name}_completeness.csv"])
     subprocess.run(["docker", "exec", "-i", "candigv2_postgres-db_1", "rm", f"/tmp/{stem_name}_completeness.csv"])
     subprocess.run(["docker", "exec", "-i", "candigv2_postgres-db_1", "rm", f"/tmp/{script_name}"])
     if stem_name == "failed_minimal":
-        subprocess.run(["cp", "sql_outputs/failed_minimal_completeness.csv", f"./{prefix}failed_minimal_completeness.csv"])
+        subprocess.run(
+            ["cp", "sql_outputs/failed_minimal_completeness.csv", f"./{prefix}failed_minimal_completeness.csv"])
 
 
 def bool_str_map(bool_to_map: bool):
@@ -218,8 +227,8 @@ def bool_str_map(bool_to_map: bool):
 def get_minimal_completeness():
     minimal_completeness_df = pd.read_csv("sql_outputs/minimal_completeness.csv", dtype="str")
     minimal_completeness_df['combined_sample_type'] = (
-                minimal_completeness_df['tumour_normal_designation'].astype(str) +
-                "~" + minimal_completeness_df['sample_type'].astype(str))
+            minimal_completeness_df['tumour_normal_designation'].astype(str) +
+            "~" + minimal_completeness_df['sample_type'].astype(str))
     donor_grouped_sample = minimal_completeness_df.groupby(['program_id_id', 'submitter_donor_id'])[
         'combined_sample_type'].agg(list).reset_index()
     donor_grouped_sample['tier_a_samples_complete'] = donor_grouped_sample['combined_sample_type'].map(
@@ -230,7 +239,8 @@ def get_minimal_completeness():
         donor_grouped_sample.loc[donor_grouped_sample['tier_a_samples_complete']].submitter_donor_id)
     minimal_tier_b_complete_donor_list = list(
         donor_grouped_sample.loc[donor_grouped_sample['tier_b_samples_complete']].submitter_donor_id)
-    minimal_tier_b_complete_donor_list = list(set(minimal_tier_b_complete_donor_list) - set(minimal_tier_a_complete_donor_list))
+    minimal_tier_b_complete_donor_list = list(
+        set(minimal_tier_b_complete_donor_list) - set(minimal_tier_a_complete_donor_list))
     minimal_completeness_df['tier_a_clinical_complete'] = minimal_completeness_df['submitter_donor_id'].isin(
         minimal_tier_a_complete_donor_list)
     minimal_completeness_df['tier_b_clinical_complete'] = minimal_completeness_df['submitter_donor_id'].isin(
@@ -256,7 +266,8 @@ def get_comorbidity_completeness():
     don't have time to do that right now.
     For now I will just compare the number of complete comorbidities vs non-complete"""
     comorbidity_comp_df = pd.read_csv("sql_outputs/fullsome_comorbidity_completeness.csv", dtype="str")
-    comorbidity_count_df = pd.read_csv("sql_outputs/fullsome_comorbidity_count.csv").rename(columns={'count': 'total_count'})
+    comorbidity_count_df = pd.read_csv("sql_outputs/fullsome_comorbidity_count.csv").rename(
+        columns={'count': 'total_count'})
     comorbidity_comp_df = comorbidity_comp_df.loc[:,
                           ['program_id_id', 'submitter_donor_id', 'prior_malignancy']].groupby(
         ['program_id_id', 'submitter_donor_id'], as_index=False).count().rename(
@@ -296,12 +307,14 @@ def get_followups_completeness():
 
 def get_radiations_completeness():
     radiation_comp_df = pd.read_csv("sql_outputs/fullsome_treatments_radiation_completeness.csv", dtype="str")
-    radiation_count_df = pd.read_csv("sql_outputs/fullsome_treatments_radiation_count.csv").drop('submitter_treatment_id',
-                                                                                     axis=1).groupby(
+    radiation_count_df = pd.read_csv("sql_outputs/fullsome_treatments_radiation_count.csv").drop(
+        'submitter_treatment_id',
+        axis=1).groupby(
         ['program_id_id', 'submitter_donor_id'], as_index=False).sum().rename(columns={'count': 'total_count'})
     complete_radiations = pd.merge(radiation_count_df, radiation_comp_df.loc[:, ['program_id_id', 'submitter_donor_id',
                                                                                  'treatment_type']].groupby(
-        ['program_id_id', 'submitter_donor_id'], as_index=False).count().rename(columns={"treatment_type": "complete_count"}),
+        ['program_id_id', 'submitter_donor_id'], as_index=False).count().rename(
+        columns={"treatment_type": "complete_count"}),
                                    on=['program_id_id', 'submitter_donor_id'], how="left")
     complete_radiations['radiation_donor_complete'] = complete_radiations['complete_count'] == complete_radiations[
         'total_count']
@@ -311,7 +324,7 @@ def get_radiations_completeness():
 def get_surgeries_completeness():
     surgery_comp_df = pd.read_csv("sql_outputs/fullsome_treatments_surgery_completeness.csv", dtype="str")
     surgery_count_df = pd.read_csv("sql_outputs/fullsome_treatments_surgery_count.csv").drop('submitter_treatment_id',
-                                                                                 axis=1).groupby(
+                                                                                             axis=1).groupby(
         ['program_id_id', 'submitter_donor_id'], as_index=False).sum().rename(columns={'count': 'total_count'})
     surgery_specimens = pd.read_csv("sql_outputs/fullsome_specimen_completeness.csv")
     exception_treatments = list(
@@ -320,7 +333,8 @@ def get_surgeries_completeness():
     surgery_comp_df['surgery_complete'] = (surgery_comp_df['treatment_exception'] |
                                            (surgery_comp_df['surgery_site'].notna() &
                                             surgery_comp_df['surgery_location'].notna()))
-    complete_surgeries = pd.merge(surgery_count_df, surgery_comp_df.loc[:, ["program_id_id", "submitter_donor_id", "surgery_complete"]]
+    complete_surgeries = pd.merge(surgery_count_df,
+                                  surgery_comp_df.loc[:, ["program_id_id", "submitter_donor_id", "surgery_complete"]]
                                   .groupby(["program_id_id", "submitter_donor_id"], as_index=False).sum(),
                                   on=["program_id_id", "submitter_donor_id"], how="left")
     complete_surgeries["surgery_donor_complete"] = (complete_surgeries['surgery_complete'] ==
@@ -331,48 +345,63 @@ def get_surgeries_completeness():
 def get_sys_therapy_completeness():
     sys_therapy_comp_df = pd.read_csv("sql_outputs/fullsome_treatments_sys_therapy_completeness.csv",
                                       dtype="str")
-    sys_therapy_count_df = (pd.read_csv("sql_outputs/fullsome_treatments_sys_therapy_count.csv").drop('submitter_treatment_id', axis=1).
-                            groupby(['program_id_id', 'submitter_donor_id'], as_index=False).sum().rename(
-                            columns={'count': 'total_count'}))
+    sys_therapy_count_df = (
+    pd.read_csv("sql_outputs/fullsome_treatments_sys_therapy_count.csv").drop('submitter_treatment_id', axis=1).
+    groupby(['program_id_id', 'submitter_donor_id'], as_index=False).sum().rename(
+        columns={'count': 'total_count'}))
     sys_therapy_comp_df["sys_therapy_complete"] = ((sys_therapy_comp_df['drug_dose_units'].isna() &
-                                                   sys_therapy_comp_df['prescribed_cumulative_drug_dose'].isna() &
-                                                   sys_therapy_comp_df['actual_cumulative_drug_dose'].isna()) |
+                                                    sys_therapy_comp_df['prescribed_cumulative_drug_dose'].isna() &
+                                                    sys_therapy_comp_df['actual_cumulative_drug_dose'].isna()) |
                                                    ((sys_therapy_comp_df['prescribed_cumulative_drug_dose'].notna() |
-                                                    sys_therapy_comp_df['actual_cumulative_drug_dose'].notna()) &
-                                                   sys_therapy_comp_df['drug_dose_units'].notna()))
+                                                     sys_therapy_comp_df['actual_cumulative_drug_dose'].notna()) &
+                                                    sys_therapy_comp_df['drug_dose_units'].notna()))
     complete_sys_therapies = pd.merge(sys_therapy_count_df,
-                                      sys_therapy_comp_df.loc[:, ["program_id_id", "submitter_donor_id", 'sys_therapy_complete']].
-                                      groupby(["program_id_id", "submitter_donor_id"], as_index=False).sum(), on=["program_id_id", "submitter_donor_id"],
+                                      sys_therapy_comp_df.loc[:,
+                                      ["program_id_id", "submitter_donor_id", 'sys_therapy_complete']].
+                                      groupby(["program_id_id", "submitter_donor_id"], as_index=False).sum(),
+                                      on=["program_id_id", "submitter_donor_id"],
                                       how="left")
-    complete_sys_therapies["sys_therapy_donor_complete"] = complete_sys_therapies["total_count"] == complete_sys_therapies["sys_therapy_complete"]
+    complete_sys_therapies["sys_therapy_donor_complete"] = complete_sys_therapies["total_count"] == \
+                                                           complete_sys_therapies["sys_therapy_complete"]
     return complete_sys_therapies.rename(columns={"total_count": "sys_therapies_total_count"})
 
 
 def get_treatments_completeness():
     treatment_comp_df = pd.read_csv("sql_outputs/fullsome_treatments_completeness.csv", dtype="str")
     sys_therapy_count_df = pd.read_csv("sql_outputs/fullsome_treatments_sys_therapy_count.csv")
-    radiation_count_df = pd.read_csv("sql_outputs/fullsome_treatments_radiation_count.csv").rename(columns={'count': 'total_count'})
-    surgery_count_df = pd.read_csv("sql_outputs/fullsome_treatments_surgery_count.csv").rename(columns={'count': 'total_count'})
+    radiation_count_df = pd.read_csv("sql_outputs/fullsome_treatments_radiation_count.csv").rename(
+        columns={'count': 'total_count'})
+    surgery_count_df = pd.read_csv("sql_outputs/fullsome_treatments_surgery_count.csv").rename(
+        columns={'count': 'total_count'})
     treatment_count_df = pd.read_csv("sql_outputs/fullsome_treatments_count.csv").rename(
         columns={'count': 'total_count'})
-    sys_therapy_treatment_list = list(treatment_comp_df.loc[treatment_comp_df['treatment_type'].str.contains('Systemic therapy', na=False), 'submitter_treatment_id'])
-    sys_therapy_treatment_type_intersection = set(sys_therapy_treatment_list).intersection(set(sys_therapy_count_df['submitter_treatment_id']))
+    sys_therapy_treatment_list = list(treatment_comp_df.loc[
+                                          treatment_comp_df['treatment_type'].str.contains('Systemic therapy',
+                                                                                           na=False), 'submitter_treatment_id'])
+    sys_therapy_treatment_type_intersection = set(sys_therapy_treatment_list).intersection(
+        set(sys_therapy_count_df['submitter_treatment_id']))
     treatment_comp_df["sys_therapy_complete"] = (treatment_comp_df['treatment_type'].str.contains(
         'Systemic therapy', na=False) & treatment_comp_df[
-        'submitter_treatment_id'].isin(sys_therapy_treatment_type_intersection))
-    treatment_comp_df["sys_therapy_complete"] = treatment_comp_df["sys_therapy_complete"].apply(lambda x: bool_str_map(x))
-    treatment_comp_df.loc[~treatment_comp_df["treatment_type"].str.contains('Systemic therapy', na=False), ['sys_therapy_complete']] = None
+                                                     'submitter_treatment_id'].isin(
+        sys_therapy_treatment_type_intersection))
+    treatment_comp_df["sys_therapy_complete"] = treatment_comp_df["sys_therapy_complete"].apply(
+        lambda x: bool_str_map(x))
+    treatment_comp_df.loc[~treatment_comp_df["treatment_type"].str.contains('Systemic therapy', na=False), [
+        'sys_therapy_complete']] = None
 
-    radiation_treatment_list = list(treatment_comp_df.loc[treatment_comp_df['treatment_type'].str.contains('Radiation therapy', na=False), 'submitter_treatment_id'])
+    radiation_treatment_list = list(treatment_comp_df.loc[
+                                        treatment_comp_df['treatment_type'].str.contains('Radiation therapy',
+                                                                                         na=False), 'submitter_treatment_id'])
     radiation_treatment_type_intersection = set(radiation_treatment_list).intersection(
         set(radiation_count_df['submitter_treatment_id']))
     treatment_comp_df["radiation_complete"] = (
-                treatment_comp_df['treatment_type'].str.contains('Radiation therapy', na=False) &
-                treatment_comp_df['submitter_treatment_id'].isin(radiation_treatment_type_intersection))
+            treatment_comp_df['treatment_type'].str.contains('Radiation therapy', na=False) &
+            treatment_comp_df['submitter_treatment_id'].isin(radiation_treatment_type_intersection))
     treatment_comp_df["radiation_complete"] = treatment_comp_df["radiation_complete"].apply(lambda x: bool_str_map(x))
     treatment_comp_df.loc[~treatment_comp_df["treatment_type"].str.contains('Radiation therapy', na=False), [
         'radiation_complete']] = None
-    surgery_treatment_list = list(treatment_comp_df.loc[treatment_comp_df['treatment_type'].str.contains('Surgery', na=False), 'submitter_treatment_id'])
+    surgery_treatment_list = list(treatment_comp_df.loc[treatment_comp_df['treatment_type'].str.contains('Surgery',
+                                                                                                         na=False), 'submitter_treatment_id'])
     surgery_treatment_type_intersection = set(surgery_treatment_list).intersection(
         set(surgery_count_df['submitter_treatment_id']))
     treatment_comp_df["surgery_complete"] = (
@@ -381,11 +410,15 @@ def get_treatments_completeness():
     treatment_comp_df["surgery_complete"] = treatment_comp_df["surgery_complete"].apply(lambda x: bool_str_map(x))
     treatment_comp_df.loc[~treatment_comp_df["treatment_type"].str.contains('Surgery', na=False), [
         'surgery_complete']] = None
-    treatment_comp_df['treatment_complete'] = ~treatment_comp_df[['sys_therapy_complete', "radiation_complete", "surgery_complete"]].eq(False).any(axis=1)
+    treatment_comp_df['treatment_complete'] = ~treatment_comp_df[
+        ['sys_therapy_complete', "radiation_complete", "surgery_complete"]].eq(False).any(axis=1)
     complete_treatments = pd.merge(treatment_count_df,
-                                   treatment_comp_df.loc[:, ['program_id_id', 'submitter_donor_id', 'treatment_complete']].
-                                   groupby(["program_id_id", "submitter_donor_id"], as_index=False).sum(), on=["program_id_id", "submitter_donor_id"], how="left")
-    complete_treatments["treatment_donor_complete"] = complete_treatments["treatment_complete"] == complete_treatments["total_count"]
+                                   treatment_comp_df.loc[:,
+                                   ['program_id_id', 'submitter_donor_id', 'treatment_complete']].
+                                   groupby(["program_id_id", "submitter_donor_id"], as_index=False).sum(),
+                                   on=["program_id_id", "submitter_donor_id"], how="left")
+    complete_treatments["treatment_donor_complete"] = complete_treatments["treatment_complete"] == complete_treatments[
+        "total_count"]
     return complete_treatments.rename(columns={"total_count": "treatments_total_count"})
 
 
@@ -394,8 +427,10 @@ def get_primary_diagnosis_completeness():
                              dtype='str')
     pd_count_df = (pd.read_csv("sql_outputs/fullsome_primary_diagnosis_count.csv").rename(
         columns={'count': 'total_count'}))
-    pd_comp_df["staging_present"] = ((pd_comp_df['clinical_tumour_staging_system'].notna() & pd_comp_df['clinical_stage_group'].notna()) |
-                                     (pd_comp_df['pathological_tumour_staging_system'].notna() & pd_comp_df['pathological_stage_group'].notna()))
+    pd_comp_df["staging_present"] = (
+                (pd_comp_df['clinical_tumour_staging_system'].notna() & pd_comp_df['clinical_stage_group'].notna()) |
+                (pd_comp_df['pathological_tumour_staging_system'].notna() & pd_comp_df[
+                    'pathological_stage_group'].notna()))
     # Check tnms complete if AJCC used for staging, only return False if AJCC was selected, otherwise true
     pd_comp_df["clinical_ajcc_tnm_present"] = ((pd_comp_df['clinical_tumour_staging_system'].str.contains("AJCC") &
                                                 pd_comp_df['clinical_t_category'].notna() & pd_comp_df[
@@ -404,14 +439,17 @@ def get_primary_diagnosis_completeness():
                                                (~pd_comp_df['clinical_tumour_staging_system'].str.contains("AJCC",
                                                                                                            na=False)))
     pd_comp_df["pathological_ajcc_tnm_present"] = (
-                (pd_comp_df['pathological_tumour_staging_system'].str.contains("AJCC", na=False) &
-                 pd_comp_df['pathological_t_category'].notna() & pd_comp_df[
-                     'pathological_n_category'].notna() & pd_comp_df[
-                     'pathological_m_category'].notna()) |
-                (~pd_comp_df['pathological_tumour_staging_system'].str.contains("AJCC", na=False)))
+            (pd_comp_df['pathological_tumour_staging_system'].str.contains("AJCC", na=False) &
+             pd_comp_df['pathological_t_category'].notna() & pd_comp_df[
+                 'pathological_n_category'].notna() & pd_comp_df[
+                 'pathological_m_category'].notna()) |
+            (~pd_comp_df['pathological_tumour_staging_system'].str.contains("AJCC", na=False)))
     pd_comp_df['pd_complete'] = (pd_comp_df['staging_present'] & pd_comp_df['clinical_ajcc_tnm_present'] &
                                  pd_comp_df['pathological_ajcc_tnm_present'])
-    complete_pd_df = pd.merge(pd_count_df, pd_comp_df.loc[:, ['program_id_id', 'submitter_donor_id', 'pd_complete']].groupby(['program_id_id', 'submitter_donor_id'], as_index=False).sum(), on=['program_id_id', 'submitter_donor_id'], how="left")
+    complete_pd_df = pd.merge(pd_count_df,
+                              pd_comp_df.loc[:, ['program_id_id', 'submitter_donor_id', 'pd_complete']].groupby(
+                                  ['program_id_id', 'submitter_donor_id'], as_index=False).sum(),
+                              on=['program_id_id', 'submitter_donor_id'], how="left")
     complete_pd_df['pd_donor_complete'] = complete_pd_df['total_count'] == complete_pd_df['pd_complete']
     return complete_pd_df.rename(columns={"total_count": "pd_total_count"})
 
@@ -420,21 +458,22 @@ def get_specimens_completeness():
     spec_comp_df = pd.read_csv("sql_outputs/fullsome_specimen_completeness.csv", dtype="str")
     spec_count_df = (pd.read_csv("sql_outputs/fullsome_specimen_count.csv").rename(columns={'count': 'total_count'}))
     spec_comp_df['tumour_spec_complete'] = (
-                (spec_comp_df['tumour_normal_designation'].str.contains('Tumour') &
-                 spec_comp_df['tumour_histological_type'].notna() &
-                 spec_comp_df['reference_pathology_confirmed_diagnosis'].notna() &
-                 spec_comp_df['reference_pathology_confirmed_tumour_presence'].notna() &
-                 spec_comp_df['tumour_grading_system'].notna() &
-                 spec_comp_df['tumour_grade'].notna() &
-                 spec_comp_df['percent_tumour_cells_range'].notna() &
-                 spec_comp_df['percent_tumour_cells_range'].notna() &
-                 spec_comp_df['percent_tumour_cells_measurement_method'].notna()
-                 ) | (spec_comp_df['tumour_normal_designation'].str.contains('Normal')))
+            (spec_comp_df['tumour_normal_designation'].str.contains('Tumour') &
+             spec_comp_df['tumour_histological_type'].notna() &
+             spec_comp_df['reference_pathology_confirmed_diagnosis'].notna() &
+             spec_comp_df['reference_pathology_confirmed_tumour_presence'].notna() &
+             spec_comp_df['tumour_grading_system'].notna() &
+             spec_comp_df['tumour_grade'].notna() &
+             spec_comp_df['percent_tumour_cells_range'].notna() &
+             spec_comp_df['percent_tumour_cells_range'].notna() &
+             spec_comp_df['percent_tumour_cells_measurement_method'].notna()
+             ) | (spec_comp_df['tumour_normal_designation'].str.contains('Normal')))
     complete_specimens_df = pd.merge(
         spec_count_df.drop('submitter_specimen_id', axis=1).groupby(['program_id_id', 'submitter_donor_id'],
                                                                     as_index=False).sum(),
         spec_comp_df.loc[:,
-        ['program_id_id', 'submitter_donor_id', 'tumour_spec_complete']].groupby(['program_id_id', 'submitter_donor_id'], as_index=False).sum(),
+        ['program_id_id', 'submitter_donor_id', 'tumour_spec_complete']].groupby(
+            ['program_id_id', 'submitter_donor_id'], as_index=False).sum(),
         on=["program_id_id", "submitter_donor_id"], how="left")
     complete_specimens_df['specimen_donor_complete'] = complete_specimens_df['total_count'] == complete_specimens_df[
         'tumour_spec_complete']
@@ -447,9 +486,11 @@ def get_samples_completeness():
     samp_count_df['total_count'] = 1
     samp_count_df = samp_count_df.groupby(['program_id_id', 'submitter_donor_id'], as_index=False).sum()
     samp_comp_df['complete_samples_count'] = 1
-    samp_comp_df = samp_comp_df.drop(['submitter_sample_id'], axis=1).groupby(['program_id_id', 'submitter_donor_id']).sum()
+    samp_comp_df = samp_comp_df.drop(['submitter_sample_id'], axis=1).groupby(
+        ['program_id_id', 'submitter_donor_id']).sum()
     samples_complete = pd.merge(samp_count_df, samp_comp_df, on=['program_id_id', 'submitter_donor_id'], how="left")
-    samples_complete['sample_donor_complete'] = samples_complete['total_count'] == samples_complete['complete_samples_count']
+    samples_complete['sample_donor_complete'] = samples_complete['total_count'] == samples_complete[
+        'complete_samples_count']
     return samples_complete.rename(columns={'total_count': 'samples_total_count'})
 
 
@@ -457,11 +498,12 @@ def get_donors_completeness():
     donor_comp_df = pd.read_csv("sql_outputs/fullsome_donor_completeness.csv", dtype="str")
     donor_count_df = (pd.read_csv("sql_outputs/fullsome_donor_count.csv").rename(columns={'count': 'total_count'}))
     donor_comp_df['vital_status_complete'] = ((donor_comp_df['is_deceased'].str.contains('Yes') &
-                                              donor_comp_df['cause_of_death'].notna() &
-                                              donor_comp_df['date_of_death'].notna()) |
+                                               donor_comp_df['cause_of_death'].notna() &
+                                               donor_comp_df['date_of_death'].notna()) |
                                               donor_comp_df['is_deceased'].str.contains('No') |
                                               donor_comp_df['is_deceased'].str.contains('Not Available'))
-    donor_comp_df = donor_comp_df.loc[:, ['program_id_id', 'submitter_donor_id', 'vital_status_complete']].groupby(['program_id_id', 'submitter_donor_id'], as_index=False).sum()
+    donor_comp_df = donor_comp_df.loc[:, ['program_id_id', 'submitter_donor_id', 'vital_status_complete']].groupby(
+        ['program_id_id', 'submitter_donor_id'], as_index=False).sum()
     donors_complete = pd.merge(donor_count_df, donor_comp_df, on=['program_id_id', 'submitter_donor_id'], how='left')
     donors_complete['donor_obj_complete'] = donors_complete['total_count'] == donors_complete['vital_status_complete']
     return donors_complete.rename(columns={'total_count': 'donorobj_total_count'})
@@ -478,10 +520,12 @@ def main():
         for script in glob.glob('*.sql'):
             _run_sql_script(script, file_prefix)
     else:
+        if not Path("sql_outputs").is_dir():
+            print("sql_outputs dir not found, please run script again and ensure --no-sql not specified.")
+            sys.exit()
+        subprocess.run(
+            ["cp", "sql_outputs/failed_minimal_completeness.csv", f"./{file_prefix}failed_minimal_completeness.csv"])
         print("Not fetching new sql data")
-    if not Path("sql_outputs").is_dir():
-        print("sql_outputs dir not found, please run script again and ensure --no-sql not specified.")
-        sys.exit()
     # Get minimal clinical Completeness stats
     (program_minimal_tier_a_complete_df, program_minimal_tier_b_complete_df,
      complete_donor_samples_df) = get_minimal_completeness()
@@ -492,7 +536,8 @@ def main():
          'primary_site', 'basis_of_diagnosis', 'specimen_collection_date',
          'specimen_anatomic_location', 'tumour_normal_designation', 'sample_type',
          'specimen_type']].isnull()
-    failed_minimal_program_summary = pd.concat([failed_minimal_summary[['program_id_id']], failed_summary_bools], axis=1).groupby('program_id_id', as_index=False).sum()
+    failed_minimal_program_summary = pd.concat([failed_minimal_summary[['program_id_id']], failed_summary_bools],
+                                               axis=1).groupby('program_id_id', as_index=False).sum()
     failed_minimal_program_summary.to_csv(f"{file_prefix}per_program_failed_minimal_completeness.csv", index=False)
     complete_donor_samples_df.to_csv(f"{file_prefix}complete_donor_samples.csv", index=False)
     if len(complete_donor_samples_df) == 0:
@@ -531,7 +576,8 @@ def main():
                                                       (~joined_completeness['sys_therapy_donor_complete'].eq(False)) &
                                                       (~joined_completeness['treatment_donor_complete'].eq(False)) &
                                                       (~joined_completeness['specimen_donor_complete'].eq(False)))
-    joined_completeness.sort_values(['program_id_id', 'submitter_donor_id']).to_csv(f"{file_prefix}per_donor_clinical_completeness_full_breakdown.csv", index=False)
+    joined_completeness.sort_values(['program_id_id', 'submitter_donor_id']).to_csv(
+        f"{file_prefix}per_donor_clinical_completeness_full_breakdown.csv", index=False)
     all_donor_df = donors_comp_df.loc[:, ["program_id_id", "submitter_donor_id"]]
     minimal_complete_donor_df = complete_donor_samples_df.loc[:, ['program_id_id', 'submitter_donor_id',
                                                                   'tier_a_clinical_complete',
@@ -551,7 +597,7 @@ def main():
         if len(genomic_stats) > 0:
             genomic_stats.to_csv(f"{file_prefix}per_sample_genomic_stats.csv", index=False)
             genomic_stats = (pd.merge(genomic_stats, samples_count_df.rename(columns={"program_id_id": "program_id"}),
-                                      on=["program_id", "submitter_sample_id"], how="left"))
+                                      on=["program_id", "submitter_sample_id"], how="outer"))
             donor_genomic_status = {
                 "submitter_donor_id": [],
                 "tier_a_genomic_files_complete": [],
@@ -575,20 +621,24 @@ def main():
             full_genomic_stats = pd.merge(genomic_stats_per_donor, pd.DataFrame(donor_genomic_status),
                                           on='submitter_donor_id').loc[:, ['program_id', 'submitter_donor_id',
                                                                            'expression_file_count',
-                                                                           'variant_sample_file_count', 'read_file_count',
+                                                                           'variant_sample_file_count',
+                                                                           'read_file_count',
                                                                            'tier_a_genomic_files_complete',
                                                                            'tier_b_genomic_files_complete']]
         else:
             print("WARN: No matching genomic information found for samples.")
             full_genomic_stats = copy.deepcopy(samples_count_df).groupby(['program_id_id', 'submitter_donor_id'],
-                                                                         as_index=False).sum().drop('submitter_sample_id', axis=1).rename(columns={"program_id_id": "program_id"})
+                                                                         as_index=False).sum().drop(
+                'submitter_sample_id', axis=1).rename(columns={"program_id_id": "program_id"})
             full_genomic_stats.loc[:, ['expression_file_count', 'variant_sample_file_count', 'read_file_count']] = 0
             full_genomic_stats.loc[:, ['tier_a_genomic_files_complete', 'tier_b_genomic_files_complete']] = False
     else:
         print("WARN: No samples found in database.")
-        full_genomic_stats = copy.deepcopy(samples_count_df).groupby(['program_id_id', 'submitter_donor_id'], as_index=False).sum().rename(columns={"program_id_id": "program_id"})
+        full_genomic_stats = copy.deepcopy(samples_count_df).groupby(['program_id_id', 'submitter_donor_id'],
+                                                                     as_index=False).sum().rename(
+            columns={"program_id_id": "program_id"})
         full_genomic_stats.loc[:, ['expression_file_count', 'variant_sample_file_count', 'read_file_count']] = 0
-        full_genomic_stats.loc[:, ['tier_a_genomic_files_complete','tier_b_genomic_files_complete']] = False
+        full_genomic_stats.loc[:, ['tier_a_genomic_files_complete', 'tier_b_genomic_files_complete']] = False
 
     clinical_genomic_completeness = joined_completeness.loc[:,
                                     ['program_id_id', 'submitter_donor_id', 'donor_fullsome_complete']].rename(
@@ -596,19 +646,27 @@ def main():
                                                        how='left').merge(
         minimal_complete_donor_df.rename(columns={"program_id_id": "program_id"}),
         on=['program_id', 'submitter_donor_id'], how='left')
-    clinical_genomic_completeness['tier_a_full_complete'] = (clinical_genomic_completeness['tier_a_genomic_files_complete']
-                                                             & clinical_genomic_completeness['tier_a_clinical_complete'])
-    clinical_genomic_completeness['tier_b_full_complete'] = clinical_genomic_completeness[
-                                                                'tier_b_genomic_files_complete'] & \
-                                                            clinical_genomic_completeness['tier_b_clinical_complete']
+    clinical_genomic_completeness['tier_a_full_complete'] = (
+                clinical_genomic_completeness['tier_a_genomic_files_complete']
+                & clinical_genomic_completeness['tier_a_clinical_complete'])
+    clinical_genomic_completeness['tier_b_full_complete'] = (clinical_genomic_completeness[
+                                                                 'tier_b_genomic_files_complete'] &
+                                                             clinical_genomic_completeness[
+                                                                 'tier_b_clinical_complete']) | \
+                                                            (clinical_genomic_completeness[
+                                                                 'tier_b_genomic_files_complete'] &
+                                                             clinical_genomic_completeness[
+                                                                 'tier_a_clinical_complete'])
     clinical_genomic_completeness['fully_fullsome_complete'] = (clinical_genomic_completeness['donor_fullsome_complete']
-                                                                & clinical_genomic_completeness['tier_a_genomic_files_complete'])
+                                                                & clinical_genomic_completeness[
+                                                                    'tier_a_genomic_files_complete'])
     clinical_genomic_completeness.to_csv(f"{file_prefix}per_donor_full_completeness.csv", index=False)
 
     # summarize by program for report
     report_table = copy.deepcopy(clinical_genomic_completeness)
     report_table['donor_count'] = 1
-    report_table = report_table.drop(['submitter_donor_id', 'donor_fullsome_complete', ], axis=1).groupby(['program_id'], as_index=False).sum()
+    report_table = report_table.drop(['submitter_donor_id', 'donor_fullsome_complete', ], axis=1).groupby(
+        ['program_id'], as_index=False).sum()
     report_table['incomplete_donors'] = report_table['donor_count'] - (report_table['tier_a_full_complete'] +
                                                                        report_table['tier_b_full_complete'])
     report_table['node'] = args.node
