@@ -56,11 +56,16 @@ You will need to provide:
 - Minimum clinical completeness with 1 DNA normal and 1 DNA tumour sample
 - VCF that contains variants from the DNA normal and DNA tumour samples
 
-**Fullsome complete:**
+**Tier A Fullsome complete:**
 
 - all required and conditionally required fields with valid values with at least 1 DNA normal, 1 DNA tumour, 1 RNA tumour sample registration
 - At least one VCF that contains samples from the DNA normal and DNA tumour
 - An Expression matrix linked to the RNA tumour sample
+
+**Tier B Fullsome complete:**
+
+- all required and conditionally required fields with valid values with at least 1 DNA normal, 1 DNA tumour
+- At least one VCF that contains samples from the DNA normal and DNA tumour
 
 **Minimal clinical completeness**
 
@@ -113,7 +118,7 @@ A sample is counted as `Normal` if `sample_registration.tumour_normal_designatio
 
 All outputs are prefixed with a date-time stamp and the value provided to the `--node` argument.
 
-### `per_program_completeness_report.csv`
+### `YYYY-MM-DD_hhmm-NODE-per_program_completeness_report.csv`
 
 Contains counts per program of completeness based on tier a, tier b and fullsome completeness
 
@@ -121,16 +126,20 @@ Columns:
 * `node` - the node where the report was run
 * `program_id` - the program id
 * `donor_count` - total number of donors in the program
-* `tier_a_full_complete` - count of donors that meet minimal clinical and genomic data completeness for tier a criteria
-* `tier_b_full_complete` - count of donors that meet minimal clinical and genomic data completeness for tier b criteria, excluding donors counted in `tier_a_full_commplete`
-* `incomplete_donors` - count of donors that do not meet full tier a or tier b criteria
-* `fullsome_cg_complete` - count of donors that meet fullsome clinical data completeness and tier_a genomic criteria
-* `tier_a_clinical_complete` - count of donors that meet tier a clinical completeness
-* `tier_a_genomic_complete` - count of donors that meet tier a genomic completeness
-* `tier_b_clinical_complete` - count of donors that meet tier b clinical completeness
-* `tier_b_genomic_complete` - count of donors that meet tier b genomic completeness
+* `tier_a_min_cg_complete` - count of donors that meet minimal clinical and genomic data completeness for tier a criteria
+* `tier_b_min_cg_complete` - count of donors that meet minimal clinical and genomic data completeness for tier b criteria, excluding donors counted in `tier_a_full_complete`
+* `incomplete_min_donors` - count of donors that do not meet tier a or tier b minimal criteria
+* `tier_a_full_cg_complete` - count of donors that meet fullsome clinical data completeness and tier_a genomic criteria
+* `tier_b_full_cg_complete` - count of donors that meet fullsome clinical data completeness and tier_b genomic criteria
+* `incomplete_full_donors` - count of donors that do not meet fullsome tier a or tier b criteria
+* `tier_a_min_clinical_complete` - count of donors that meet tier a minimal clinical completeness
+* `tier_b_min_clinical_complete` - count of donors that meet tier b minimal clinical completeness
+* `tier_a_full_clinical_complete` - count of donors that meet tier a fullsome clinical completeness
+* `tier_a_full_clinical_complete` - count of donors that meet tier b fullsome clinical completeness
+* `tier_a_genomic_files_complete` - count of donors that meet tier a genomic completeness
+* `tier_b_genomic_files_complete` - count of donors that meet tier b genomic completeness
 
-## `per_program_failed_minimal_completeness.csv`
+## `YYYY-MM-DD_hhmm-NODE-per_program_failed_minimal_completeness.csv`
 
 Contains a count of **samples** per program with a null value for each of the minimal clinical completeness criteria.
 
@@ -156,29 +165,34 @@ Columns:
 > [!NOTE]
 > Failed counts count the number of SAMPLES not DONORS, we generally expect a DONOR to have 2-3 samples. Since they are grouped in this way some of the metadata is repeated, e.g. the status of `gender` would be the same for all samples from the same donor
 
-## `failed_minimal_completeness.csv`
+## `YYYY-MM-DD_hhmm-NODE-failed_minimal_completeness.csv`
 
 Contains minimal completeness metadata for samples that have a null value in at least one of the minimal clinical completeness criteria (see list above)
 
-### `per_donor_full_completeness.csv`
+This file can be used to figure out which field(s) are causing specific donors or samples to fail minimal completeness.
+
+### `YYYY-MM-DD_hhmm-NODE-per_donor_full_completeness.csv`
 
 Contains summary completeness including genomic and clinical data per donor
 
 Columns:
 * `program_id`
 * `submitter_donor_id`
-* `donor_fullsome_complete` - whether donor has fullsome clinical data completeness
+* `tier_a_full_clinical_complete` - whether donor has fullsome tier a clinical data completeness
+* `tier_b_full_clinical_complete` - whether donor has fullsome tier a clinical data completeness
 * `expression_file_count` - count of expression files linked to the sample
 * `variant_sample_file_count` - count of variant files linked to the sample
 * `read_file_count` - count of read files linked to the sample
-* `tier_a_genomic_complete` - whether donor meets tier a genomic completeness
-* `tier_b_genomic_complete` - whether donor meets tier b genomic completeness
-* `tier_a_clinical_complete` - whether donor meets tier a clinical completeness
-* `tier_b_clinical_complete` - whether donor meets tier b clinical completeness
-* `tier_a_full_complete` - whether donor meets minimal clinical and genomic data completeness for tier a criteria
-* `tier_b_full_complete` - whether donor meets minimal clinical and genomic data completeness for tier b criteria, excluding donors counted in `tier_a_full_commplete`
+* `tier_a_genomic_files_complete` - whether donor meets tier a genomic completeness
+* `tier_b_genomic_files_complete` - whether donor meets tier b genomic completeness
+* `tier_a_min_clinical_complete` - whether donor meets tier a clinical completeness
+* `tier_b_min_clinical_complete` - whether donor meets tier b clinical completeness
+* `tier_a_min_cg_complete` - whether donor meets minimal clinical and genomic data completeness for tier a criteria
+* `tier_b_min_cg_complete` - whether donor meets minimal clinical and genomic data completeness for tier b criteria, excluding donors counted in `tier_a_min_cg_commplete`
+* `tier_a_full_cg_complete` - whether the donor meets fullsome tier a clinical and genomic criteria
+* `tier_b_full_cg_complete` - whether the donor meets fullsome tier b clinical and genomic criteria
 
-### `per_sample_genomic_stats.csv`
+### `YYYY-MM-DD_hhmm-NODE-per_sample_genomic_stats.csv`
 
 Contains counts of genomic files linked to samples
 
@@ -189,6 +203,10 @@ Columns:
 * `variant_sample_file_count` - count of variant files linked to the sample
 * `read_file_count` - count of read files linked to the sample
 
-### `per_donor_clinical_completeness_full_breakdown.csv`
+### `YYYY-MM-DD_hhmm-NODE-per_donor_clinical_completeness_full_breakdown.csv`
 
 Full per donor breakdown of completeness in each category of object. May be useful for trying to understand where donors are not meeting fullsome clinical completeness.
+
+### `YYYY-MM-DD_hhmm-NODE-complete_donor_samples.csv`
+
+File containing a list of all minimally complete samples.

@@ -241,9 +241,9 @@ def get_minimal_completeness():
         donor_grouped_sample.loc[donor_grouped_sample['tier_b_samples_complete']].submitter_donor_id)
     minimal_tier_b_complete_donor_list = list(
         set(minimal_tier_b_complete_donor_list) - set(minimal_tier_a_complete_donor_list))
-    minimal_completeness_df['tier_a_clinical_complete'] = minimal_completeness_df['submitter_donor_id'].isin(
+    minimal_completeness_df['tier_a_min_clinical_complete'] = minimal_completeness_df['submitter_donor_id'].isin(
         minimal_tier_a_complete_donor_list)
-    minimal_completeness_df['tier_b_clinical_complete'] = minimal_completeness_df['submitter_donor_id'].isin(
+    minimal_completeness_df['tier_b_min_clinical_complete'] = minimal_completeness_df['submitter_donor_id'].isin(
         minimal_tier_b_complete_donor_list)
     program_minimal_tier_a_complete_df = donor_grouped_sample.loc[
         donor_grouped_sample['tier_a_samples_complete']].groupby('program_id_id').size().to_frame(
@@ -566,24 +566,38 @@ def main():
         merge(treatments_comp_df, on=["program_id_id", "submitter_donor_id"], how="left").
         merge(specimens_comp_df, on=["program_id_id", "submitter_donor_id"], how="left"))
     # Only count as not complete if any tests are False, nan means the donor didn't have that kind of object
-    joined_completeness['donor_fullsome_complete'] = ((~joined_completeness['sample_donor_complete'].eq(False)) &
-                                                      (~joined_completeness['donor_obj_complete'].eq(False)) &
-                                                      (~joined_completeness['pd_donor_complete'].eq(False)) &
-                                                      (~joined_completeness['donor_followups_complete'].eq(False)) &
-                                                      (~joined_completeness['donor_comorbidities_complete'].eq(False)) &
-                                                      (~joined_completeness['radiation_donor_complete'].eq(False)) &
-                                                      (~joined_completeness['surgery_donor_complete'].eq(False)) &
-                                                      (~joined_completeness['sys_therapy_donor_complete'].eq(False)) &
-                                                      (~joined_completeness['treatment_donor_complete'].eq(False)) &
-                                                      (~joined_completeness['specimen_donor_complete'].eq(False)))
+    joined_completeness['tier_a_full_clinical_complete'] = (
+            (~joined_completeness['sample_donor_complete'].eq(False)) &
+            (joined_completeness['samples_total_count'] >= 3) &
+            (~joined_completeness['donor_obj_complete'].eq(False)) &
+            (~joined_completeness['pd_donor_complete'].eq(False)) &
+            (~joined_completeness['donor_followups_complete'].eq(False)) &
+            (~joined_completeness['donor_comorbidities_complete'].eq(False)) &
+            (~joined_completeness['radiation_donor_complete'].eq(False)) &
+            (~joined_completeness['surgery_donor_complete'].eq(False)) &
+            (~joined_completeness['sys_therapy_donor_complete'].eq(False)) &
+            (~joined_completeness['treatment_donor_complete'].eq(False)) &
+            (~joined_completeness['specimen_donor_complete'].eq(False)))
+    joined_completeness['tier_b_full_clinical_complete'] = (
+            (~joined_completeness['sample_donor_complete'].eq(False)) &
+            (joined_completeness['samples_total_count'] == 2) &
+            (~joined_completeness['donor_obj_complete'].eq(False)) &
+            (~joined_completeness['pd_donor_complete'].eq(False)) &
+            (~joined_completeness['donor_followups_complete'].eq(False)) &
+            (~joined_completeness['donor_comorbidities_complete'].eq(False)) &
+            (~joined_completeness['radiation_donor_complete'].eq(False)) &
+            (~joined_completeness['surgery_donor_complete'].eq(False)) &
+            (~joined_completeness['sys_therapy_donor_complete'].eq(False)) &
+            (~joined_completeness['treatment_donor_complete'].eq(False)) &
+            (~joined_completeness['specimen_donor_complete'].eq(False)))
     joined_completeness.sort_values(['program_id_id', 'submitter_donor_id']).to_csv(
         f"{file_prefix}per_donor_clinical_completeness_full_breakdown.csv", index=False)
     all_donor_df = donors_comp_df.loc[:, ["program_id_id", "submitter_donor_id"]]
     minimal_complete_donor_df = complete_donor_samples_df.loc[:, ['program_id_id', 'submitter_donor_id',
-                                                                  'tier_a_clinical_complete',
-                                                                  'tier_b_clinical_complete']].drop_duplicates(
-    ).rename({'tier_a_clinical_complete': 'tier_a_minimal_clinical_complete',
-              'tier_b_clinical_complete': 'tier_b_minimal_clinical_complete'})
+                                                                  'tier_a_min_clinical_complete',
+                                                                  'tier_b_min_clinical_complete']].drop_duplicates(
+    ).rename({'tier_a_min_clinical_complete': 'tier_a_minimal_clinical_complete',
+              'tier_b_min_clinical_complete': 'tier_b_minimal_clinical_complete'})
     samples_count_df = pd.read_csv("sql_outputs/fullsome_sample_count.csv")
     sample_list = list(samples_count_df['submitter_sample_id'])
     donor_list = set(list(samples_count_df['submitter_donor_id']))
@@ -641,40 +655,49 @@ def main():
         full_genomic_stats.loc[:, ['tier_a_genomic_files_complete', 'tier_b_genomic_files_complete']] = False
 
     clinical_genomic_completeness = joined_completeness.loc[:,
-                                    ['program_id_id', 'submitter_donor_id', 'donor_fullsome_complete']].rename(
+                                    ['program_id_id', 'submitter_donor_id', 'tier_a_full_clinical_complete',
+                                     'tier_b_full_clinical_complete']].rename(
         columns={"program_id_id": "program_id"}).merge(full_genomic_stats, on=['program_id', 'submitter_donor_id'],
                                                        how='left').merge(
         minimal_complete_donor_df.rename(columns={"program_id_id": "program_id"}),
         on=['program_id', 'submitter_donor_id'], how='left')
-    clinical_genomic_completeness['tier_a_full_complete'] = (
+    clinical_genomic_completeness['tier_a_min_cg_complete'] = (
                 clinical_genomic_completeness['tier_a_genomic_files_complete']
-                & clinical_genomic_completeness['tier_a_clinical_complete'])
-    clinical_genomic_completeness['tier_b_full_complete'] = (clinical_genomic_completeness[
+                & clinical_genomic_completeness['tier_a_min_clinical_complete'])
+    clinical_genomic_completeness['tier_b_min_cg_complete'] = (clinical_genomic_completeness[
                                                                  'tier_b_genomic_files_complete'] &
                                                              clinical_genomic_completeness[
-                                                                 'tier_b_clinical_complete']) | \
+                                                                 'tier_b_min_clinical_complete']) | \
                                                             (clinical_genomic_completeness[
                                                                  'tier_b_genomic_files_complete'] &
                                                              clinical_genomic_completeness[
-                                                                 'tier_a_clinical_complete'])
-    clinical_genomic_completeness['fully_fullsome_complete'] = (clinical_genomic_completeness['donor_fullsome_complete']
-                                                                & clinical_genomic_completeness[
+                                                                 'tier_a_min_clinical_complete'])
+    clinical_genomic_completeness['tier_a_full_cg_complete'] = (clinical_genomic_completeness['tier_a_full_clinical_complete']
+                                                                 & clinical_genomic_completeness[
                                                                     'tier_a_genomic_files_complete'])
+    clinical_genomic_completeness['tier_b_full_cg_complete'] = (
+        (clinical_genomic_completeness['tier_b_full_clinical_complete'] |
+         clinical_genomic_completeness['tier_a_full_clinical_complete'])
+                & clinical_genomic_completeness[
+                    'tier_b_genomic_files_complete'])
     clinical_genomic_completeness.to_csv(f"{file_prefix}per_donor_full_completeness.csv", index=False)
 
     # summarize by program for report
     report_table = copy.deepcopy(clinical_genomic_completeness)
     report_table['donor_count'] = 1
-    report_table = report_table.drop(['submitter_donor_id', 'donor_fullsome_complete', ], axis=1).groupby(
+    report_table = report_table.drop(['submitter_donor_id'], axis=1).groupby(
         ['program_id'], as_index=False).sum()
-    report_table['incomplete_donors'] = report_table['donor_count'] - (report_table['tier_a_full_complete'] +
-                                                                       report_table['tier_b_full_complete'])
+    report_table['incomplete_min_donors'] = report_table['donor_count'] - (report_table['tier_a_min_cg_complete'] +
+                                                                       report_table['tier_b_min_cg_complete'])
+    report_table['incomplete_full_donors'] = report_table['donor_count'] - (report_table['tier_a_full_cg_complete'] +
+                                                                    report_table['tier_b_full_cg_complete'])
     report_table['node'] = args.node
-    report_table = report_table[['node', 'program_id', 'donor_count', 'tier_a_full_complete',
-                                 'tier_b_full_complete', 'incomplete_donors',
-                                 'fully_fullsome_complete', 'tier_a_clinical_complete', 'tier_a_genomic_files_complete',
-                                 'tier_b_clinical_complete', 'tier_b_genomic_files_complete']]
-    report_table = report_table.rename(columns={'fully_fullsome_complete': 'fullsome_cg_complete'})
+    report_table = report_table[['node', 'program_id', 'donor_count',
+                                 'tier_a_min_cg_complete', 'tier_b_min_cg_complete', 'incomplete_min_donors',
+                                 'tier_a_full_cg_complete', 'tier_b_full_cg_complete', 'incomplete_full_donors',
+                                 'tier_a_min_clinical_complete', 'tier_b_min_clinical_complete',
+                                 'tier_a_full_clinical_complete', 'tier_b_full_clinical_complete',
+                                 'tier_a_genomic_files_complete', 'tier_b_genomic_files_complete',]]
     report_table = report_table.fillna(0)
     report_table.replace(True, 1, inplace=True)
     report_table.replace(False, 0, inplace=True)
