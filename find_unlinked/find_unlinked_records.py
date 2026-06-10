@@ -39,7 +39,9 @@ import pandas
 # base_data_path = "/media/veracrypt1/CanDIG/JGH/JGH_24apr2026/orig"
 # base_data_path = "/media/veracrypt1/CanDIG/CHUM/CHUM_23apr2026/pre_proc"
 # base_data_path = "/media/veracrypt1/CanDIG/MUHC/MUHC_23apr2026/pre_proc"
-base_data_path = "/media/veracrypt1/CanDIG/MUHC/MUHC_20may2026/orig"
+# base_data_path = "/media/veracrypt1/CanDIG/MUHC/MUHC_20may2026/orig"
+# base_data_path = "/media/veracrypt1/CanDIG/CHUS/CHUS_27may2026/pre_proc"
+base_data_path = "/media/veracrypt1/CanDIG/JGH/JGH_5jun2026/pre_proc"
 
 
 # Panda settings.
@@ -72,9 +74,13 @@ def main():
 
     ## MINIMALLY CLINICALLY INCOMPLETE
     # Check for the essential clinical fields.
-    donor_empty = pandas.concat([donor_df[donor_df['gender'].isna()], donor_df[donor_df['sex_at_birth'].isna()], donor_df[donor_df['date_of_birth'].isna()], donor_df[donor_df['date_resolution'].isna()]], axis=0)
-    pd_empty = pandas.concat([primary_diagnosis_df[primary_diagnosis_df['date_of_diagnosis'].isna()], primary_diagnosis_df[primary_diagnosis_df['cancer_type_code'].isna()], primary_diagnosis_df[primary_diagnosis_df['primary_site'].isna()], primary_diagnosis_df[primary_diagnosis_df['basis_of_diagnosis'].isna()]], axis=0)
-    specimen_empty = pandas.concat([specimen_df[specimen_df['specimen_collection_date'].isna()], specimen_df[specimen_df['specimen_anatomic_location'].isna()]], axis=0)
+    # Some fields have so many empty cases that they are automatically set to 'Not available' through the template.csv and mapping functions. 
+    donor_empty = pandas.concat([donor_df[donor_df['sex_at_birth'].isna()], donor_df[donor_df['date_of_birth'].isna()], donor_df[donor_df['date_resolution'].isna()]], axis=0)
+    # donor_df[donor_df['gender'].isna()], # gender automatically set to "Not available" through the template.csv
+    pd_empty = pandas.concat([primary_diagnosis_df[primary_diagnosis_df['date_of_diagnosis'].isna()], primary_diagnosis_df[primary_diagnosis_df['cancer_type_code'].isna()], primary_diagnosis_df[primary_diagnosis_df['primary_site'].isna()]], axis=0)
+    # primary_diagnosis_df[primary_diagnosis_df['basis_of_diagnosis'].isna()]  # basis of diagnosis automatically set to "Not available" through the template.csv
+    specimen_empty = pandas.concat([specimen_df[specimen_df['specimen_collection_date'].isna()]], axis=0)
+    # specimen_df[specimen_df['specimen_anatomic_location'].isna()]  # specimen_anatomic_location automatically set to "Not available" through the template.csv
     sample_empty = pandas.concat([sample_registration_df[sample_registration_df['specimen_tissue_source'].isna()], sample_registration_df[sample_registration_df['tumour_normal_designation'].isna()], sample_registration_df[sample_registration_df['specimen_type'].isna()], sample_registration_df[sample_registration_df['sample_type'].isna()], ], axis=0)
 
     count = pandas.concat([donor_empty[['program_id', 'submitter_donor_id']], pd_empty[['program_id', 'submitter_donor_id']], specimen_empty[['program_id', 'submitter_donor_id']], sample_empty[['program_id', 'submitter_donor_id']]], axis=0)
