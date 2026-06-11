@@ -1,5 +1,5 @@
 COPY (SELECT mohpackets_donor.program_id_id, mohpackets_donor.submitter_donor_id, mohpackets_primarydiagnosis.submitter_primary_diagnosis_id,
-mohpackets_treatment.submitter_treatment_id, treatment_type
+mohpackets_treatment.submitter_treatment_id, treatment_type, status_of_treatment
 FROM
 mohpackets_donor
 LEFT JOIN mohpackets_primarydiagnosis
@@ -12,7 +12,8 @@ WHERE mohpackets_donor.program_id_id IS NOT NULL
   AND treatment_type IS NOT NULL
   AND is_primary_treatment IS NOT NULL
   AND treatment_start_date IS NOT NULL
-  AND treatment_end_date IS NOT NULL
+  AND (treatment_end_date IS NOT NULL
+  OR status_of_treatment = 'Treatment ongoing')
   AND treatment_intent IS NOT NULL
   ) TO '/tmp/fullsome_treatments_completeness.csv' with (FORMAT CSV, HEADER);
 COPY (SELECT program_id_id, submitter_donor_id, COUNT(*)
