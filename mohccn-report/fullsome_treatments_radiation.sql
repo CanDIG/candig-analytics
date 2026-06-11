@@ -17,8 +17,10 @@ WHERE mohpackets_donor.program_id_id IS NOT NULL
   AND treatment_intent IS NOT NULL
   AND radiation_therapy_modality IS NOT NULL
   AND radiation_therapy_type IS NOT NULL
-  AND radiation_therapy_fractions IS NOT NULL
-  AND radiation_therapy_dosage IS NOT NULL
+  AND (radiation_therapy_fractions IS NOT NULL
+  OR radiation_therapy_fractions_not_available IS NOT NULL)
+  AND (radiation_therapy_dosage IS NOT NULL
+  OR radiation_therapy_dosage_not_available IS NOT NULL)
   AND anatomical_site_irradiated IS NOT NULL) TO '/tmp/fullsome_treatments_radiation_completeness.csv' with (FORMAT CSV, HEADER);
 COPY (SELECT program_id_id, submitter_donor_id, submitter_treatment_id, COUNT(*)
 FROM mohpackets_radiation
