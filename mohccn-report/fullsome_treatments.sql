@@ -13,7 +13,7 @@ WHERE mohpackets_donor.program_id_id IS NOT NULL
   AND is_primary_treatment IS NOT NULL
   AND treatment_start_date IS NOT NULL
   AND (treatment_end_date IS NOT NULL
-  OR status_of_treatment == "Treatment ongoing")
+  OR status_of_treatment == 'Treatment ongoing')
   AND treatment_intent IS NOT NULL
   ) TO '/tmp/fullsome_treatments_completeness.csv' with (FORMAT CSV, HEADER);
 COPY (SELECT program_id_id, submitter_donor_id, COUNT(*)
