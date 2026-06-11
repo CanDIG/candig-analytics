@@ -1,6 +1,6 @@
 COPY (SELECT mohpackets_donor.program_id_id, mohpackets_donor.submitter_donor_id, mohpackets_primarydiagnosis.submitter_primary_diagnosis_id,
 mohpackets_treatment.submitter_treatment_id, treatment_type, radiation_therapy_fractions,
-radiation_therapy_fractions_not_available, radiation_therapy_dosage
+radiation_therapy_fractions_not_available, radiation_therapy_dosage,
 radiation_therapy_dosage_not_available
 FROM mohpackets_donor
 LEFT JOIN mohpackets_primarydiagnosis
