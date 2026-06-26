@@ -296,16 +296,13 @@ def get_followups_completeness():
              followup_comp_df['date_of_relapse'].notna() &
              followup_comp_df['relapse_type'].notna() &
              followup_comp_df['method_of_progression_status'].notna() &
-             followup_comp_df[
-                 'anatomic_site_progression_or_recurrence'].notna()) |
-            # Followup indicates Biochemical progression but does not indicate anatomic site of progression/recurrence
+             followup_comp_df['anatomic_site_progression_or_recurrence'].notna()) |
+            # Biochemical progression: anatomic site of progression/recurrence not required
             (followup_comp_df['relapse_prog'] &
              followup_comp_df['date_of_relapse'].notna() &
              followup_comp_df['relapse_type'].notna() &
              followup_comp_df['method_of_progression_status'].notna() &
-             (followup_comp_df[
-                  'anatomic_site_progression_or_recurrence'].notna()) |
-             followup_comp_df['relapse_type'] == "Biochemical progression")
+             (followup_comp_df['relapse_type'] == "Biochemical progression"))
     )
     followup_donor_complete = (followup_comp_df.loc[:, ['program_id_id', 'submitter_donor_id', 'complete_followup']].
                                groupby(['program_id_id', 'submitter_donor_id'], as_index=False).sum())
