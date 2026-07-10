@@ -35,7 +35,9 @@ from pathlib import Path
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from matplotlib import cm
 from matplotlib.backends.backend_pdf import PdfPages
+from matplotlib.colors import Normalize
 import numpy as np
 import pandas as pd
 
@@ -223,12 +225,22 @@ def _table_fontsize(n_items):
     return 9
 
 
+def _text_color_for_bg(rgba):
+    """Picks black or white text for readability against a given RGBA background, based on
+    perceptual luminance."""
+    r, g, b = rgba[0], rgba[1], rgba[2]
+    luminance = 0.299 * r + 0.587 * g + 0.114 * b
+    return 'white' if luminance < 0.5 else 'black'
+
+
 def add_program_summary_table(pdf, df, page_counter):
     """
     Replaces the separate "average completeness" and ">80% complete" bar charts with a single
     table: one row per program, with both the raw donor count and the percentage for the >80%
     columns (not just the percentage) so each row is self-contained without needing to cross-
-    reference donor_count elsewhere.
+    reference donor_count elsewhere. The four percentage columns (avg completeness and >80%
+    complete, minimal and fullsome) are additionally shaded using the plasma colormap (0-100%) so
+    low/high performers are visible at a glance, with a colorbar legend alongside the table.
     """
     required = ['donor_count', 'minimal_avg_pct_complete', 'fullsome_avg_pct_complete',
                 'minimal_pct_donors_over_80', 'fullsome_pct_donors_over_80',
@@ -255,13 +267,25 @@ def add_program_summary_table(pdf, df, page_counter):
                   ">80% complete\n(minimal)", ">80% complete\n(fullsome)"]
     col_widths = [0.22, 0.12, 0.17, 0.17, 0.16, 0.16]
 
+    # Column indices (1-based, matching table.get_celld() keys) whose cells get shaded by their
+    # underlying percentage value, mapped to the values themselves.
+    pct_by_col = {
+        2: df['minimal_avg_pct_complete'].tolist(),
+        3: df['fullsome_avg_pct_complete'].tolist(),
+        4: df['minimal_pct_donors_over_80'].tolist(),
+        5: df['fullsome_pct_donors_over_80'].tolist(),
+    }
+    plasma = plt.get_cmap('plasma')
+    norm = Normalize(vmin=0, vmax=100)
+
     fig, ax = plt.subplots(figsize=_dynamic_figsize(len(programs), per_item=0.32, min_height=3))
     # Pin the axes to fill almost the entire figure, in FIGURE (not axes-relative) coordinates.
     # matplotlib's default subplot margins reserve a fixed FRACTION of figure height for the title
     # area - fine on a normal-sized figure, but on the very tall figures used here for many
     # programs (up to 40in) that fraction turns into inches of blank space above the table. Setting
     # the position explicitly keeps the gap a fixed size regardless of how tall the figure gets.
-    ax.set_position([0.02, 0.01, 0.96, 0.97])
+    # Left a slice of figure width free (0.88-1.0) for the colorbar legend added below.
+    ax.set_position([0.02, 0.01, 0.86, 0.97])
     ax.axis('off')
     ax.text(0.5, 0.99, "Per-program completeness summary", ha='center', va='top', fontsize=14,
            fontweight='bold', transform=ax.transAxes)
@@ -274,8 +298,19 @@ def add_program_summary_table(pdf, df, page_counter):
         if row_idx == 0:
             cell.set_facecolor('#EEEEEE')
             cell.set_text_props(fontweight='bold')
+        elif col_idx in pct_by_col:
+            rgba = plasma(norm(pct_by_col[col_idx][row_idx - 1]))
+            cell.set_facecolor(rgba)
+            cell.set_text_props(color=_text_color_for_bg(rgba))
         elif row_idx % 2 == 0:
             cell.set_facecolor('#F7F7F7')
+
+    cbar_ax = fig.add_axes([0.90, 0.2, 0.02, 0.5])
+    sm = cm.ScalarMappable(norm=norm, cmap=plasma)
+    sm.set_array([])
+    cbar = fig.colorbar(sm, cax=cbar_ax)
+    cbar.set_label('% complete', fontsize=9)
+    cbar.ax.tick_params(labelsize=8)
     _save_page(pdf, fig, page_counter)
 
 
