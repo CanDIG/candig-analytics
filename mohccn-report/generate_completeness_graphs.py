@@ -11,19 +11,18 @@ If --output is not given, the PDF is named <input-file-stem>_summary_graphs.pdf.
 Pages produced (any page whose required columns are missing from the input is skipped, with a
 warning printed, so this also works against older report files that predate a given column set).
 Every page carries a "Page N" footer.
-    1. Cover page - node name, generation date, program/donor counts
+    1. Cover page - node name, generation date, node-wide summary statistics table
     2. Node-wide completeness bucket distribution (minimal and fullsome side by side)
     3. Per-program completeness bucket distribution - minimal (stacked horizontal bar, raw counts)
     4. Per-program completeness bucket distribution - fullsome (stacked horizontal bar, raw counts)
-    5. Average donor completeness per program (minimal vs fullsome, horizontal bar)
-    6. Percentage of donors above 80% complete per program (minimal vs fullsome, horizontal bar,
-       value labelled on each bar)
-    7. Tier-based completeness per program, minimal criteria (raw tier_a/b/incomplete counts)
-    8. Tier-based completeness per program, minimal criteria (100% stacked bar)
-    9. Tier-based completeness per program, fullsome criteria (raw tier_a/b/incomplete counts)
-    10. Tier-based completeness per program, fullsome criteria (100% stacked bar)
+    5. Per-program summary table - donor count, average completeness and >80%-complete count/
+       percentage, both minimal and fullsome
+    6. Tier-based completeness per program, minimal criteria (raw tier_a/b/incomplete counts)
+    7. Tier-based completeness per program, minimal criteria (100% stacked bar)
+    8. Tier-based completeness per program, fullsome criteria (raw tier_a/b/incomplete counts)
+    9. Tier-based completeness per program, fullsome criteria (100% stacked bar)
 
-Per-program charts (3-10) use horizontal bars so program names never need to be rotated, and the
+Per-program charts (3-9) use horizontal bars so program names never need to be rotated, and the
 figure height scales with the number of programs (capped at a sane maximum) - this keeps the
 charts readable whether a node has 3 programs or 100+. Categorical (program) axis limits are set
 tightly around the bars rather than relying on matplotlib's default 5% margin, to avoid large
@@ -50,9 +49,7 @@ BUCKET_LABELS = ['91-100%', '81-90%', '71-80%', '61-70%', '51-60%', '<=50%']
 # between adjacent buckets.
 BUCKET_COLORS = ['#009E73', '#56B4E9', '#F0E442', '#E69F00', '#CC79A7', '#D55E00']
 
-# Colour-blind-safe (Okabe-Ito) palette used for the two-series and three-series comparison charts.
-COLOR_MINIMAL = '#0072B2'    # blue
-COLOR_FULLSOME = '#E69F00'   # orange
+# Colour-blind-safe (Okabe-Ito) palette used for the tier breakdown charts.
 COLOR_TIER_A = '#009E73'     # bluish green
 COLOR_TIER_B = '#0072B2'     # blue
 COLOR_INCOMPLETE = '#D55E00'  # vermillion
@@ -218,51 +215,67 @@ def add_per_program_stacked_bucket_bar(pdf, df, prefix, title, page_counter):
     _save_page(pdf, fig, page_counter)
 
 
-def add_avg_completeness_bar(pdf, df, page_counter):
-    cols = ['minimal_avg_pct_complete', 'fullsome_avg_pct_complete']
-    if not _has_columns(df, cols) or 'program_id' not in df.columns:
-        return
-    programs = df['program_id'].tolist()
-    y = np.arange(len(programs))
-    height = 0.35
-    fig, ax = plt.subplots(figsize=_dynamic_figsize(len(programs)))
-    ax.barh(y - height / 2, df['minimal_avg_pct_complete'], height, label='Minimal', color=COLOR_MINIMAL)
-    ax.barh(y + height / 2, df['fullsome_avg_pct_complete'], height, label='Fullsome', color=COLOR_FULLSOME)
-    ax.set_yticks(y)
-    ax.set_yticklabels(programs, fontsize=_tick_fontsize(len(programs)))
-    ax.set_ylim(len(programs) - 0.5, -0.5)
-    ax.set_xlabel("Average donor completeness (%)")
-    ax.set_title("Average donor completeness per program")
-    ax.set_xlim(0, 100)
-    ax.legend()
-    fig.tight_layout()
-    _save_page(pdf, fig, page_counter)
+def _table_fontsize(n_items):
+    if n_items > 60:
+        return 5.5
+    if n_items > 30:
+        return 7
+    return 9
 
 
-def add_pct_over_80_bar(pdf, df, page_counter):
-    cols = ['minimal_pct_donors_over_80', 'fullsome_pct_donors_over_80']
-    if not _has_columns(df, cols) or 'program_id' not in df.columns:
+def add_program_summary_table(pdf, df, page_counter):
+    """
+    Replaces the separate "average completeness" and ">80% complete" bar charts with a single
+    table: one row per program, with both the raw donor count and the percentage for the >80%
+    columns (not just the percentage) so each row is self-contained without needing to cross-
+    reference donor_count elsewhere.
+    """
+    required = ['donor_count', 'minimal_avg_pct_complete', 'fullsome_avg_pct_complete',
+                'minimal_pct_donors_over_80', 'fullsome_pct_donors_over_80',
+                'minimal_91_100_pct_complete', 'minimal_81_90_pct_complete',
+                'fullsome_91_100_pct_complete', 'fullsome_81_90_pct_complete']
+    if not _has_columns(df, required) or 'program_id' not in df.columns:
         return
     programs = df['program_id'].tolist()
-    y = np.arange(len(programs))
-    height = 0.35
-    fig, ax = plt.subplots(figsize=_dynamic_figsize(len(programs)))
-    minimal_bars = ax.barh(y - height / 2, df['minimal_pct_donors_over_80'], height, label='Minimal',
-                          color=COLOR_MINIMAL)
-    fullsome_bars = ax.barh(y + height / 2, df['fullsome_pct_donors_over_80'], height, label='Fullsome',
-                           color=COLOR_FULLSOME)
-    # Label each bar with its actual value, centred inside the bar (white on the darker blue,
-    # black on the lighter orange so both stay legible).
-    ax.bar_label(minimal_bars, fmt='%.1f%%', label_type='center', color='white', fontsize=8, fontweight='bold')
-    ax.bar_label(fullsome_bars, fmt='%.1f%%', label_type='center', color='black', fontsize=8, fontweight='bold')
-    ax.set_yticks(y)
-    ax.set_yticklabels(programs, fontsize=_tick_fontsize(len(programs)))
-    ax.set_ylim(len(programs) - 0.5, -0.5)
-    ax.set_xlabel("% of donors with completeness > 80%")
-    ax.set_title("Donors above 80% complete, per program")
-    ax.set_xlim(0, 100)
-    ax.legend()
-    fig.tight_layout()
+    minimal_over80_counts = (df['minimal_91_100_pct_complete'] + df['minimal_81_90_pct_complete']).astype(int)
+    fullsome_over80_counts = (df['fullsome_91_100_pct_complete'] + df['fullsome_81_90_pct_complete']).astype(int)
+
+    rows = []
+    for i in range(len(df)):
+        rows.append([
+            programs[i],
+            str(int(df['donor_count'].iloc[i])),
+            f"{df['minimal_avg_pct_complete'].iloc[i]:.1f}%",
+            f"{df['fullsome_avg_pct_complete'].iloc[i]:.1f}%",
+            f"{minimal_over80_counts.iloc[i]} ({df['minimal_pct_donors_over_80'].iloc[i]:.1f}%)",
+            f"{fullsome_over80_counts.iloc[i]} ({df['fullsome_pct_donors_over_80'].iloc[i]:.1f}%)",
+        ])
+
+    col_labels = ["Program", "Donor\ncount", "Avg completeness\n(minimal)", "Avg completeness\n(fullsome)",
+                  ">80% complete\n(minimal)", ">80% complete\n(fullsome)"]
+    col_widths = [0.22, 0.12, 0.17, 0.17, 0.16, 0.16]
+
+    fig, ax = plt.subplots(figsize=_dynamic_figsize(len(programs), per_item=0.32, min_height=3))
+    # Pin the axes to fill almost the entire figure, in FIGURE (not axes-relative) coordinates.
+    # matplotlib's default subplot margins reserve a fixed FRACTION of figure height for the title
+    # area - fine on a normal-sized figure, but on the very tall figures used here for many
+    # programs (up to 40in) that fraction turns into inches of blank space above the table. Setting
+    # the position explicitly keeps the gap a fixed size regardless of how tall the figure gets.
+    ax.set_position([0.02, 0.01, 0.96, 0.97])
+    ax.axis('off')
+    ax.text(0.5, 0.99, "Per-program completeness summary", ha='center', va='top', fontsize=14,
+           fontweight='bold', transform=ax.transAxes)
+    table = ax.table(cellText=rows, colLabels=col_labels, cellLoc='center', colLoc='center',
+                     colWidths=col_widths, bbox=[0.0, 0.0, 1.0, 0.94])
+    table.auto_set_font_size(False)
+    table.set_fontsize(_table_fontsize(len(programs)))
+    for (row_idx, col_idx), cell in table.get_celld().items():
+        cell.set_edgecolor('#CCCCCC')
+        if row_idx == 0:
+            cell.set_facecolor('#EEEEEE')
+            cell.set_text_props(fontweight='bold')
+        elif row_idx % 2 == 0:
+            cell.set_facecolor('#F7F7F7')
     _save_page(pdf, fig, page_counter)
 
 
@@ -335,8 +348,7 @@ def main():
                                            "Donors per program by minimal completeness", page_counter)
         add_per_program_stacked_bucket_bar(pdf, df, 'fullsome',
                                            "Donors per program by fullsome completeness", page_counter)
-        add_avg_completeness_bar(pdf, df, page_counter)
-        add_pct_over_80_bar(pdf, df, page_counter)
+        add_program_summary_table(pdf, df, page_counter)
         add_tier_breakdown_bar(pdf, df, 'tier_a_min_cg_complete', 'tier_b_min_cg_complete',
                                'incomplete_min_donors', "Minimal clinical + genomic tier breakdown per program",
                                page_counter)
