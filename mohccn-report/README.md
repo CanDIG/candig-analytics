@@ -42,6 +42,31 @@ You will need to provide:
 
 4. Share the output file `per_program_completeness_report.csv`
 
+## Generating summary graphs
+
+`generate_completeness_graphs.py` turns a `per_program_completeness_report.csv` (the output of the
+step above) into a multi-page PDF of summary charts - a cover page with node-wide summary
+statistics, node-wide and per-program completeness bucket distributions, average completeness per
+program, percentage of donors above 80% complete, and tier breakdowns (both raw counts and
+100%-stacked) for minimal and fullsome criteria.
+
+```bash
+python generate_completeness_graphs.py --input 2026-01-01_1200-UHN-per_program_completeness_report.csv
+```
+
+By default the PDF is named `<input-file-stem>_summary_graphs.pdf`; pass `--output` to choose a
+different path:
+
+```bash
+python generate_completeness_graphs.py --input report.csv --output my_summary.pdf
+```
+
+This only depends on the CSV, so it can be run anywhere `pandas`/`matplotlib` are installed (e.g.
+on your own laptop after copying the report off the node) - it doesn't need database or CanDIG API
+access. If the input file is missing a column a given page depends on (e.g. an older report
+generated before a column was added), that page is skipped with a warning rather than failing the
+whole run.
+
 ## Running tests
 
 The `tests/` directory contains a pytest suite covering the completeness logic in
