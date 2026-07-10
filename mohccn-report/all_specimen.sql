@@ -1,0 +1,10 @@
+COPY (SELECT mohpackets_specimen.program_id_id, mohpackets_specimen.submitter_donor_id,
+mohpackets_specimen.submitter_specimen_id, mohpackets_specimen.submitter_treatment_id,
+specimen_collection_date, specimen_anatomic_location, tumour_normal_designation,
+tumour_histological_type, reference_pathology_confirmed_diagnosis, reference_pathology_confirmed_tumour_presence,
+tumour_grading_system, tumour_grade, percent_tumour_cells_range, percent_tumour_cells_measurement_method
+FROM mohpackets_specimen
+LEFT JOIN mohpackets_sampleregistration
+ON mohpackets_specimen.submitter_specimen_id = mohpackets_sampleregistration.submitter_specimen_id
+AND mohpackets_specimen.program_id_id = mohpackets_sampleregistration.program_id_id)
+TO '/tmp/all_specimen_completeness.csv' with (FORMAT CSV, HEADER);

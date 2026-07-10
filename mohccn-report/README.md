@@ -42,6 +42,25 @@ You will need to provide:
 
 4. Share the output file `per_program_completeness_report.csv`
 
+## Running tests
+
+The `tests/` directory contains a pytest suite covering the completeness logic in
+`run_completeness_reporting.py` - no live CanDIG node or database connection required, since it
+runs entirely against a synthetic 22-donor dataset (`tests/synthetic_data.py`). Each synthetic
+donor is designed to exercise one specific business rule or edge case (deceased status, AJCC
+staging, tumour vs. normal specimens, relapse/biochemical follow-ups, treatment-ongoing
+exemptions, minimal tier boundaries, etc.) - see the comment above each `donor()` call for what
+it's testing and why.
+
+```bash
+pip install -r requirements.txt
+cd mohccn-report
+pytest tests/
+```
+
+Run this after making any change to the completeness logic, and add a new synthetic donor (or a
+small hand-built dataframe, as in `tests/test_field_scores.py`) to cover any new edge case.
+
 ## MOHCCN Completeness Criteria
 
 **Tier A complete cases:**
@@ -138,6 +157,12 @@ Columns:
 * `tier_a_full_clinical_complete` - count of donors that meet tier b fullsome clinical completeness
 * `tier_a_genomic_files_complete` - count of donors that meet tier a genomic completeness
 * `tier_b_genomic_files_complete` - count of donors that meet tier b genomic completeness
+* `minimal_91_100_pct_complete` / `minimal_81_90_pct_complete` / `minimal_71_80_pct_complete` / `minimal_61_70_pct_complete` / `minimal_51_60_pct_complete` / `minimal_under_50_pct_complete` - count of donors in the program whose `minimal_required_fields_pct` (see per-donor output below) falls in that bucket. Buckets are half-open (e.g. "61-70%" is `60 < pct <= 70`, "<=50%" is `pct <= 50`) so every percentage, including fractional ones, lands in exactly one bucket
+* `minimal_avg_pct_complete` - average `minimal_required_fields_pct` across donors in the program
+* `fullsome_91_100_pct_complete` / `fullsome_81_90_pct_complete` / `fullsome_71_80_pct_complete` / `fullsome_61_70_pct_complete` / `fullsome_51_60_pct_complete` / `fullsome_under_50_pct_complete` - count of donors in the program whose `fullsome_required_fields_pct` falls in that bucket, using the same half-open bucket boundaries
+* `fullsome_avg_pct_complete` - average `fullsome_required_fields_pct` across donors in the program
+* `minimal_pct_donors_over_80` - percentage of all donors in the program whose `minimal_required_fields_pct` is over 80% (i.e. in the `minimal_91_100_pct_complete` or `minimal_81_90_pct_complete` buckets)
+* `fullsome_pct_donors_over_80` - percentage of all donors in the program whose `fullsome_required_fields_pct` is over 80%
 
 ## `YYYY-MM-DD_hhmm-NODE-per_program_failed_minimal_completeness.csv`
 
@@ -191,6 +216,12 @@ Columns:
 * `tier_b_min_cg_complete` - whether donor meets minimal clinical and genomic data completeness for tier b criteria, excluding donors counted in `tier_a_min_cg_commplete`
 * `tier_a_full_cg_complete` - whether the donor meets fullsome tier a clinical and genomic criteria
 * `tier_b_full_cg_complete` - whether the donor meets fullsome tier b clinical and genomic criteria
+* `minimal_required_fields_complete` - count of the 14 minimal required clinical fields (see "Minimal clinical completeness" above), summed across every one of the donor's sample-level rows (a donor with multiple specimens/samples has one row per sample, each independently scored). A donor with 10 samples missing one field on only 1 of them loses 1/10 of that field's weight, not the whole field - this uses the same row-level partial-credit methodology as the fullsome score, so the two are directly comparable
+* `minimal_required_fields_total` - total number of minimal required fields checked, i.e. 14 x the donor's number of sample-level rows
+* `minimal_required_fields_pct` - `minimal_required_fields_complete` / `minimal_required_fields_total` as a percentage
+* `fullsome_required_fields_complete` - count of individual fullsome required + conditionally-required fields that are complete for this donor, summed across every donor, primary diagnosis, specimen, sample registration, follow-up, comorbidity, treatment, radiation, surgery and systemic therapy record the donor has. Conditional fields (e.g. `cause_of_death` only when `is_deceased` is `Yes`, TNM categories only when AJCC staging is used, `drug_dose_units` only when a dose was reported) are only counted when applicable to that record
+* `fullsome_required_fields_total` - total number of fullsome required + conditionally-required fields applicable to this donor across all of their records (records/fields the donor has none of, e.g. no follow-ups, contribute 0 and are excluded)
+* `fullsome_required_fields_pct` - `fullsome_required_fields_complete` / `fullsome_required_fields_total` as a percentage
 
 ### `YYYY-MM-DD_hhmm-NODE-per_sample_genomic_stats.csv`
 
@@ -209,4 +240,9 @@ Full per donor breakdown of completeness in each category of object. May be usef
 
 ### `YYYY-MM-DD_hhmm-NODE-complete_donor_samples.csv`
 
-File containing a list of all minimally complete samples.
+File containing a list of all minimally complete samples, i.e. samples belonging to a donor whose
+`tier_a_min_clinical_complete` or `tier_b_min_clinical_complete` is True. Includes every donor/
+primary-diagnosis/specimen/sample field from the underlying minimal query (not just the sample-level
+fields used for tier calculation), since this file is now derived from the same unfiltered
+`all_minimal_completeness.csv` export used elsewhere in the pipeline rather than a separately
+filtered query.

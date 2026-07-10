@@ -1,0 +1,9 @@
+COPY (SELECT mohpackets_systemictherapy.program_id_id, mohpackets_systemictherapy.submitter_donor_id,
+mohpackets_systemictherapy.submitter_treatment_id,
+systemic_therapy_type, start_date, end_date, drug_reference_database, drug_reference_identifier, drug_name,
+prescribed_cumulative_drug_dose, actual_cumulative_drug_dose, drug_dose_units, status_of_treatment
+FROM mohpackets_systemictherapy
+LEFT JOIN mohpackets_treatment
+ON mohpackets_systemictherapy.submitter_treatment_id = mohpackets_treatment.submitter_treatment_id
+AND mohpackets_systemictherapy.program_id_id = mohpackets_treatment.program_id_id)
+TO '/tmp/all_sys_therapy_completeness.csv' with (FORMAT CSV, HEADER);

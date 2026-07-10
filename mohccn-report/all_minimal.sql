@@ -1,0 +1,17 @@
+COPY (SELECT mohpackets_donor.program_id_id, mohpackets_donor.submitter_donor_id,
+  gender, sex_at_birth, date_of_birth, date_resolution, date_of_diagnosis,
+  cancer_type_code, primary_site, basis_of_diagnosis, specimen_collection_date,
+  specimen_anatomic_location, specimen_tissue_source,
+mohpackets_sampleregistration.submitter_sample_id, tumour_normal_designation,
+sample_type, specimen_type
+FROM mohpackets_donor
+LEFT JOIN mohpackets_primarydiagnosis
+ON mohpackets_donor.submitter_donor_id = mohpackets_primarydiagnosis.submitter_donor_id
+AND mohpackets_donor.program_id_id = mohpackets_primarydiagnosis.program_id_id
+LEFT JOIN mohpackets_specimen
+ON mohpackets_primarydiagnosis.submitter_primary_diagnosis_id = mohpackets_specimen.submitter_primary_diagnosis_id AND
+mohpackets_primarydiagnosis.program_id_id = mohpackets_specimen.program_id_id
+LEFT JOIN mohpackets_sampleregistration
+ON mohpackets_specimen.submitter_specimen_id = mohpackets_sampleregistration.submitter_specimen_id
+AND mohpackets_specimen.program_id_id = mohpackets_sampleregistration.program_id_id)
+TO '/tmp/all_minimal_completeness.csv' with (FORMAT CSV, HEADER);
