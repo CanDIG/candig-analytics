@@ -239,8 +239,9 @@ def add_program_summary_table(pdf, df, page_counter):
     table: one row per program, with both the raw donor count and the percentage for the >80%
     columns (not just the percentage) so each row is self-contained without needing to cross-
     reference donor_count elsewhere. The four percentage columns (avg completeness and >80%
-    complete, minimal and fullsome) are additionally shaded using the plasma colormap (0-100%) so
-    low/high performers are visible at a glance, with a colorbar legend alongside the table.
+    complete, minimal and fullsome) are additionally shaded using the magma colormap (0-100%, 80%
+    opacity) so low/high performers are visible at a glance, with a colorbar legend alongside the
+    table.
     """
     required = ['donor_count', 'minimal_avg_pct_complete', 'fullsome_avg_pct_complete',
                 'minimal_pct_donors_over_80', 'fullsome_pct_donors_over_80',
@@ -275,8 +276,9 @@ def add_program_summary_table(pdf, df, page_counter):
         4: df['minimal_pct_donors_over_80'].tolist(),
         5: df['fullsome_pct_donors_over_80'].tolist(),
     }
-    plasma = plt.get_cmap('plasma')
+    cmap = plt.get_cmap('magma')
     norm = Normalize(vmin=0, vmax=100)
+    cell_alpha = 0.8
 
     fig, ax = plt.subplots(figsize=_dynamic_figsize(len(programs), per_item=0.32, min_height=3))
     # Pin the axes to fill almost the entire figure, in FIGURE (not axes-relative) coordinates.
@@ -299,16 +301,19 @@ def add_program_summary_table(pdf, df, page_counter):
             cell.set_facecolor('#EEEEEE')
             cell.set_text_props(fontweight='bold')
         elif col_idx in pct_by_col:
-            rgba = plasma(norm(pct_by_col[col_idx][row_idx - 1]))
-            cell.set_facecolor(rgba)
-            cell.set_text_props(color=_text_color_for_bg(rgba))
+            r, g, b, _ = cmap(norm(pct_by_col[col_idx][row_idx - 1]))
+            cell.set_facecolor((r, g, b, cell_alpha))
+            # Base the text-contrast decision on the opaque colour, not the 80%-alpha one, since
+            # the cell is drawn over a white page background regardless of its own alpha.
+            cell.set_text_props(color=_text_color_for_bg((r, g, b)))
         elif row_idx % 2 == 0:
             cell.set_facecolor('#F7F7F7')
 
     cbar_ax = fig.add_axes([0.90, 0.2, 0.02, 0.5])
-    sm = cm.ScalarMappable(norm=norm, cmap=plasma)
+    sm = cm.ScalarMappable(norm=norm, cmap=cmap)
     sm.set_array([])
     cbar = fig.colorbar(sm, cax=cbar_ax)
+    cbar.solids.set_alpha(cell_alpha)
     cbar.set_label('% complete', fontsize=9)
     cbar.ax.tick_params(labelsize=8)
     _save_page(pdf, fig, page_counter)
