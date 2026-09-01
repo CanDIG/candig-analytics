@@ -74,10 +74,10 @@ def get_genomic_data(token, url, sample_list):
         if experiment_objects and len(experiment_objects) > 0:
             for obj in experiment_objects:
                 genomic_completeness_dict['program_id'].append(obj['program'])
-                genomic_completeness_dict['submitter_sample_id'].append(obj['experiment_id'])
-                genomic_completeness_dict['expression_file_count'].append(len(obj['expressions']))
-                genomic_completeness_dict['variant_sample_file_count'].append(len(obj['variants']))
-                genomic_completeness_dict['read_file_count'].append(len(obj['reads']))
+                genomic_completeness_dict['submitter_sample_id'].append(obj['biosample_id'])
+                genomic_completeness_dict['expression_file_count'].append(len(obj['analyses']['sequence_annotation']))
+                genomic_completeness_dict['variant_sample_file_count'].append(len(obj['analyses']['sequence_variation']))
+                genomic_completeness_dict['read_file_count'].append(len(obj['analyses']['reference_alignment']))
             genomic_completeness_df = pd.DataFrame(genomic_completeness_dict)
             return genomic_completeness_df
         else:
