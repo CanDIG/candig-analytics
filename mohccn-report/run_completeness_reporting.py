@@ -75,9 +75,18 @@ def get_genomic_data(token, url, sample_list):
             for obj in experiment_objects:
                 genomic_completeness_dict['program_id'].append(obj['program'])
                 genomic_completeness_dict['submitter_sample_id'].append(obj['biosample_id'])
-                genomic_completeness_dict['expression_file_count'].append(len(obj['analyses']['sequence_annotation']))
-                genomic_completeness_dict['variant_sample_file_count'].append(len(obj['analyses']['sequence_variation']))
-                genomic_completeness_dict['read_file_count'].append(len(obj['analyses']['reference_alignment']))
+                try:
+                    genomic_completeness_dict['expression_file_count'].append(len(obj['analyses']['sequence_annotation']))
+                except KeyError:
+                    genomic_completeness_dict['expression_file_count'].append(0)
+                try:
+                    genomic_completeness_dict['variant_sample_file_count'].append(len(obj['analyses']['sequence_variation']))
+                except KeyError:
+                    genomic_completeness_dict['variant_sample_file_count'].append(0)
+                try:
+                    genomic_completeness_dict['read_file_count'].append(len(obj['analyses']['reference_alignment']))
+                except KeyError:
+                    genomic_completeness_dict['read_file_count'].append(0)
             genomic_completeness_df = pd.DataFrame(genomic_completeness_dict)
             return genomic_completeness_df
         else:
