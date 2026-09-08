@@ -66,7 +66,7 @@ def get_genomic_data(token, url, sample_list):
     }
     headers = {"Authorization": f"Bearer {token}",
                "Content-Type": "application/json; charset=utf-8"}
-    response = rq.post(f"{url}/drs/ga4gh/drs/v1/experiments", headers=headers,
+    response = rq.post(f"{url}/drs/ga4gh/drs/v1/biosamples", headers=headers,
                        json={"submitter_sample_ids": sample_list})
     if response.status_code == 200:
         """every sample should have 2 genomes, 1 transcriptome"""
@@ -74,10 +74,19 @@ def get_genomic_data(token, url, sample_list):
         if experiment_objects and len(experiment_objects) > 0:
             for obj in experiment_objects:
                 genomic_completeness_dict['program_id'].append(obj['program'])
-                genomic_completeness_dict['submitter_sample_id'].append(obj['experiment_id'])
-                genomic_completeness_dict['expression_file_count'].append(len(obj['expressions']))
-                genomic_completeness_dict['variant_sample_file_count'].append(len(obj['variants']))
-                genomic_completeness_dict['read_file_count'].append(len(obj['reads']))
+                genomic_completeness_dict['submitter_sample_id'].append(obj['biosample_id'])
+                try:
+                    genomic_completeness_dict['expression_file_count'].append(len(obj['analyses']['sequence_annotation']))
+                except KeyError:
+                    genomic_completeness_dict['expression_file_count'].append(0)
+                try:
+                    genomic_completeness_dict['variant_sample_file_count'].append(len(obj['analyses']['sequence_variation']))
+                except KeyError:
+                    genomic_completeness_dict['variant_sample_file_count'].append(0)
+                try:
+                    genomic_completeness_dict['read_file_count'].append(len(obj['analyses']['reference_alignment']))
+                except KeyError:
+                    genomic_completeness_dict['read_file_count'].append(0)
             genomic_completeness_df = pd.DataFrame(genomic_completeness_dict)
             return genomic_completeness_df
         else:
