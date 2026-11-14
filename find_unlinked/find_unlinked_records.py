@@ -39,9 +39,10 @@ import pandas
 # base_data_path = "/media/veracrypt1/CanDIG/JGH/JGH_24apr2026/orig"
 # base_data_path = "/media/veracrypt1/CanDIG/CHUM/CHUM_23apr2026/pre_proc"
 # base_data_path = "/media/veracrypt1/CanDIG/MUHC/MUHC_23apr2026/pre_proc"
-# base_data_path = "/media/veracrypt1/CanDIG/MUHC/MUHC_20may2026/orig"
 # base_data_path = "/media/veracrypt1/CanDIG/CHUS/CHUS_27may2026/pre_proc"
-base_data_path = "/media/veracrypt1/CanDIG/JGH/JGH_5jun2026/pre_proc"
+# base_data_path = "/media/veracrypt1/CanDIG/JGH/JGH_16jun2026/pre_proc"
+# base_data_path = "/media/veracrypt1/CanDIG/MUHC/MUHC_19jun2026/pre_proc"
+base_data_path = "/media/veracrypt1/CanDIG/CHUM/CHUM_10jun2026/pre_proc"
 
 
 # Panda settings.
@@ -170,6 +171,25 @@ def main():
         print(count.loc[:, ['program_id', 'submitter_donor_id']].to_csv(index=False))
     else:
         print("None")    
+    # Blank line
+    print()
+
+    # donors with more than 1 primary_diagnosis
+    pd_counts = {}
+    for value in primary_diagnosis_df['submitter_donor_id']:
+        pd_counts[value] = pd_counts.get(value, 0) + 1
+    tally = 0
+    for donor in pd_counts:
+        if pd_counts[donor] > 1 :
+            tally = tally + 1
+    print(f"Donors with more than 1 primary_diagnoses,{tally}")
+    if tally != 0:
+        print("donor_id,primary_diagnosis_count")
+    else:
+        print("None")    
+    for donor in sorted(pd_counts):
+        if pd_counts[donor] > 1:
+            print(f'{donor},{pd_counts[donor]}' )
     # Blank line
     print()
 
